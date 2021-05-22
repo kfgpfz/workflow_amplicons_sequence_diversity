@@ -5,6 +5,6 @@ THe folder contains the scripts and workflow for the analysis of amplicon sequen
 Workflow:
 
 
-First, for every amplicon pool the bash-script pipeline_SE.sh needs to be executed. Please adapt the the different path variables to your environment. A specific conda environment for this project is highly recommended.
+First, for every amplicon pool the bash-script pipeline_SE.sh needs to be executed. Please adapt the the different path variables to your environment. A specific conda environment for this project is highly recommended. The script and the positions folder need to be in the same subdirectory.
 
 bash pipeline_SE.sh
