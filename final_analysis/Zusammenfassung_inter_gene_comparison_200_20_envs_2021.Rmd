@@ -1,0 +1,1236 @@
+---
+title: "Summary pathoadaptive mutations inter gene comparison coverage 200 SNP 20 envs 2021"
+author: "Dr. Sebastian Fischer"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+        rmarkdown::pdf_document:
+                    number_sections: true
+                    fig_caption: yes
+                    keep_tex: true
+                    includes:  
+                         in_header: /mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/helper.tex
+bibliography: /mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/bibliography.bib                    
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(error = TRUE)
+knitr::opts_chunk$set(fig.pos = 'h')
+setwd("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung")
+library(kableExtra)
+library(knitr)
+library(tidyr)
+library(ggplot2)
+library(broom)
+library(moments)
+library(dplyr)
+```
+
+
+\setcounter{tocdepth}{4}
+\tableofcontents
+\listoffigures
+\listoftables
+\newpage
+
+
+```{r results='hide'}
+## Data input
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/algG_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/algU_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/fleR_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/gacA_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/gltR_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/lasR_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/lepA_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/nuoL_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/PA14_57070_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/PA14_66700_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/pagL_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/pelA_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/pelF_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/ptsP_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/relA_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/rhlR_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/spoT_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/spuE_pathoadaptive_200_20.Rdata")
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/spuF_pathoadaptive_200_20.Rdata")
+
+
+algG_gene_length <- 1632
+algU_gene_length <- 582
+fleR_gene_length <- 1422
+gacA_gene_length <- 645
+gltR_gene_length <- 729
+lasR_gene_length <- 720
+lepA_gene_length <- 1800
+nuoL_gene_length <- 1848
+PA14_57070_gene_length <- 1002
+PA14_66700_gene_length <- 768
+pagL_gene_length <- 522
+pelA_gene_length <- 2847
+pelF_gene_length <- 1524
+ptsP_gene_length <- 2280
+relA_gene_length <- 2244
+rhlR_gene_length <- 726
+spoT_gene_length <- 2106
+spuE_gene_length <- 1098
+spuF_gene_length <- 1155
+
+
+isolates_CF <- 345
+isolates_COPD <- 25
+isolates_acute <- 67
+isolates_env <- 97
+isolates_non_CF <- 189
+
+Factors_dn_ds <- read.table("/mnt/sfb900nfs/groups/tuemmler/sebastian/pathoadaptive_mutationen/Codon_usage/Faktoren_dn_ds.txt",header=TRUE)
+```
+
+# Task
+
+Analyze mutations in `r isolates_CF+isolates_non_CF` isolates of *P. aeruginosa* derived from different habitats (CF,acute, COPD, environment) by amplicon sequencing of 19 loci. The initial SOLiD analysis had lacks in coverage and reanalysis of the data using Illumnina sequencing was mandatory.
+
+# Data processing
+
+Pooling and lab work was done by Jens, Paired-end sequencing was performed by the RCUG. The desired coverage was about 1,000. Quality control was performed by Colin. The quality of the data was good but there were some adaptor sequences remaining which should be cleared by read trimming. Paired-end reads merged and trimmed using trimmomatic. The alignment was performed using *bwa mem* to PA14 reference. For each position of the investigated loci covered by PCR the number of reads for each nucleotide was extracted. 
+
+# Samples
+
+
+```{r}
+table_samples <- read.csv("samples.txt",sep="\t")
+
+kable(table_samples,"latex",caption = "Overview samples",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=8)%>%
+    row_spec(0,bold = T)
+
+```
+
+\newpage
+
+# Short summary
+
+
+# Problems and open questions
+
+* [SOLVED] Why not pooling and double sequence pools as with SOLiD? - Decided by Jens+Lutz. Coverage is enough and error as expected to be low
+
+
+\newpage
+# Results
+
+## Percentage SNPs in the gene all positions
+
+```{r fig.cap="Percentage SNPs per gene all positions",fig.height = 4, fig.width = 6}
+snp_percentage_all <- data.frame(gene=c("algG","algU","fleR","gacA","gltR","lasR","lepA","nuoL","PA14_57070","PA14_66700","pagL",
+                                        "pelA","pelF","ptsP","relA","rhlR","spoT","spuE","spuF"),
+                                 percentage=c(nrow(algG_final)/algG_gene_length*100,
+                                              nrow(algU_final)/algU_gene_length*100,
+                                              nrow(fleR_final)/fleR_gene_length*100,
+                                              nrow(gacA_final)/gacA_gene_length*100,
+                                              nrow(gltR_final)/gltR_gene_length*100,
+                                              nrow(lasR_final)/lasR_gene_length*100,
+                                              nrow(lepA_final)/lepA_gene_length*100,
+                                              nrow(nuoL_final)/nuoL_gene_length*100,
+                                              nrow(PA14_57070_final)/PA14_57070_gene_length*100,
+                                              nrow(PA14_66700_final)/PA14_66700_gene_length*100,
+                                              nrow(pagL_final)/pagL_gene_length*100,
+                                              nrow(pelA_final)/pelA_gene_length*100,
+                                              nrow(pelF_final)/pelF_gene_length*100,
+                                              nrow(ptsP_final)/ptsP_gene_length*100,
+                                              nrow(relA_final)/relA_gene_length*100,
+                                              nrow(rhlR_final)/rhlR_gene_length*100,
+                                              nrow(spoT_final)/spoT_gene_length*100,
+                                              nrow(spuE_final)/spuE_gene_length*100,
+                                              nrow(spuF_final)/spuF_gene_length*100
+                                              )
+                                 )
+
+kable(snp_percentage_all,"latex",caption = "SNP percentage all SNPs",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=7)%>%
+    row_spec(0,bold = T)
+
+ggplot(data=snp_percentage_all, aes(x=gene, y=percentage)) +
+  geom_bar(stat="identity")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+\newpage
+## Percentage SNPs in the gene excluding all positions that are known in environmentals (by 2021)
+
+```{r fig.cap="Percentage SNPs per gene no known environmental",fig.height = 4, fig.width = 6}
+snp_percentage_no_environmental <- data.frame(gene=c("algG","algU","fleR","gacA","gltR","lasR","lepA","nuoL","PA14_57070","PA14_66700","pagL",
+                                        "pelA","pelF","ptsP","relA","rhlR","spoT","spuE","spuF"),
+                                 percentage=c(nrow(algG_final_unique)/algG_gene_length*100,
+                                              nrow(algU_final_unique)/algU_gene_length*100,
+                                              nrow(fleR_final_unique)/fleR_gene_length*100,
+                                              nrow(gacA_final_unique)/gacA_gene_length*100,
+                                              nrow(gltR_final_unique)/gltR_gene_length*100,
+                                              nrow(lasR_final_unique)/lasR_gene_length*100,
+                                              nrow(lepA_final_unique)/lepA_gene_length*100,
+                                              nrow(nuoL_final_unique)/nuoL_gene_length*100,
+                                              nrow(PA14_57070_final_unique)/PA14_57070_gene_length*100,
+                                              nrow(PA14_66700_final_unique)/PA14_66700_gene_length*100,
+                                              nrow(pagL_final_unique)/pagL_gene_length*100,
+                                              nrow(pelA_final_unique)/pelA_gene_length*100,
+                                              nrow(pelF_final_unique)/pelF_gene_length*100,
+                                              nrow(ptsP_final_unique)/ptsP_gene_length*100,
+                                              nrow(relA_final_unique)/relA_gene_length*100,
+                                              nrow(rhlR_final_unique)/rhlR_gene_length*100,
+                                              nrow(spoT_final_unique)/spoT_gene_length*100,
+                                              nrow(spuE_final_unique)/spuE_gene_length*100,
+                                              nrow(spuF_final_unique)/spuF_gene_length*100
+                                              )
+                                 )
+
+kable(snp_percentage_no_environmental,"latex",caption = "SNP percentage no environmental",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=7)%>%
+    row_spec(0,bold = T)
+
+ggplot(data=snp_percentage_no_environmental, aes(x=gene, y=percentage)) +
+  geom_bar(stat="identity")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+
+```
+
+\newpage
+## Percentage SNPs in the gene only found in 1 isolate
+
+```{r fig.cap="Percentage SNPs per gene only unique",fig.height = 4, fig.width = 6}
+snp_percentage_singular <- data.frame(gene=c("algG","algU","fleR","gacA","gltR","lasR","lepA","nuoL","PA14_57070","PA14_66700","pagL",
+                                        "pelA","pelF","ptsP","relA","rhlR","spoT","spuE","spuF"),
+                                 percentage=c(nrow(algG_final_one_strain)/algG_gene_length*100,
+                                              nrow(algU_final_one_strain)/algU_gene_length*100,
+                                              nrow(fleR_final_one_strain)/fleR_gene_length*100,
+                                              nrow(gacA_final_one_strain)/gacA_gene_length*100,
+                                              nrow(gltR_final_one_strain)/gltR_gene_length*100,
+                                              nrow(lasR_final_one_strain)/lasR_gene_length*100,
+                                              nrow(lepA_final_one_strain)/lepA_gene_length*100,
+                                              nrow(nuoL_final_one_strain)/nuoL_gene_length*100,
+                                              nrow(PA14_57070_final_one_strain)/PA14_57070_gene_length*100,
+                                              nrow(PA14_66700_final_one_strain)/PA14_66700_gene_length*100,
+                                              nrow(pagL_final_one_strain)/pagL_gene_length*100,
+                                              nrow(pelA_final_one_strain)/pelA_gene_length*100,
+                                              nrow(pelF_final_one_strain)/pelF_gene_length*100,
+                                              nrow(ptsP_final_one_strain)/ptsP_gene_length*100,
+                                              nrow(relA_final_one_strain)/relA_gene_length*100,
+                                              nrow(rhlR_final_one_strain)/rhlR_gene_length*100,
+                                              nrow(spoT_final_one_strain)/spoT_gene_length*100,
+                                              nrow(spuE_final_one_strain)/spuE_gene_length*100,
+                                              nrow(spuF_final_one_strain)/spuF_gene_length*100
+                                              )
+                                 )
+
+kable(snp_percentage_singular,"latex",caption = "SNP percentage only unique SNPs",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=7)%>%
+    row_spec(0,bold = T)
+
+
+ggplot(data=snp_percentage_singular, aes(x=gene, y=percentage)) +
+  geom_bar(stat="identity")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+```
+
+\newpage
+## Ratio syn/non-syn in the gene all positions
+
+```{r fig.cap="Ratio syn/non-syn per gene all positions",fig.height = 3.5, fig.width = 5.5}
+syn_non_syn_all <- data.frame(gene=c("algG","algG","algU","algU","fleR","fleR","gacA","gacA","gltR","gltR","lasR","lasR",
+                                     "lepA","lepA","nuoL","nuoL","PA14_57070","PA14_57070","PA14_66700","PA14_66700",
+                                     "pagL","pagL","pelA","pelA","pelF","pelF","ptsP","ptsP","relA","relA",
+                                     "rhlR","rhlR","spoT","spoT","spuE","spuE","spuF","spuF"),
+                              value=c(sum(algG_final$isolates_CF[which(algG_final$Effect == "synonymous_variant")])/ sum(algG_final$isolates_CF[which(algG_final$Effect != "synonymous_variant")]),
+                                       sum(algG_final$isolates_non_CF[which(algG_final$Effect == "synonymous_variant")])/ sum(algG_final$isolates_non_CF[which(algG_final$Effect != "synonymous_variant")]),
+                                      sum(algU_final$isolates_CF[which(algU_final$Effect == "synonymous_variant")])/ sum(algU_final$isolates_CF[which(algU_final$Effect != "synonymous_variant")]),
+                                       sum(algU_final$isolates_non_CF[which(algU_final$Effect == "synonymous_variant")])/ sum(algU_final$isolates_non_CF[which(algU_final$Effect != "synonymous_variant")]),
+                                      sum(fleR_final$isolates_CF[which(fleR_final$Effect == "synonymous_variant")])/ sum(fleR_final$isolates_CF[which(fleR_final$Effect != "synonymous_variant")]),
+                                       sum(fleR_final$isolates_non_CF[which(fleR_final$Effect == "synonymous_variant")])/ sum(fleR_final$isolates_non_CF[which(fleR_final$Effect != "synonymous_variant")]),
+                                      sum(gacA_final$isolates_CF[which(gacA_final$Effect == "synonymous_variant")])/ sum(gacA_final$isolates_CF[which(gacA_final$Effect != "synonymous_variant")]),
+                                       sum(gacA_final$isolates_non_CF[which(gacA_final$Effect == "synonymous_variant")])/ sum(gacA_final$isolates_non_CF[which(gacA_final$Effect != "synonymous_variant")]),
+                                      sum(gltR_final$isolates_CF[which(gltR_final$Effect == "synonymous_variant")])/ sum(gltR_final$isolates_CF[which(gltR_final$Effect != "synonymous_variant")]),
+                                       sum(gltR_final$isolates_non_CF[which(gltR_final$Effect == "synonymous_variant")])/ sum(gltR_final$isolates_non_CF[which(gltR_final$Effect != "synonymous_variant")]),
+                                      sum(lasR_final$isolates_CF[which(lasR_final$Effect == "synonymous_variant")])/ sum(lasR_final$isolates_CF[which(lasR_final$Effect != "synonymous_variant")]),
+                                       sum(lasR_final$isolates_non_CF[which(lasR_final$Effect == "synonymous_variant")])/ sum(lasR_final$isolates_non_CF[which(lasR_final$Effect != "synonymous_variant")]),
+                                      sum(lepA_final$isolates_CF[which(lepA_final$Effect == "synonymous_variant")])/ sum(lepA_final$isolates_CF[which(lepA_final$Effect != "synonymous_variant")]),
+                                       sum(lepA_final$isolates_non_CF[which(lepA_final$Effect == "synonymous_variant")])/ sum(lepA_final$isolates_non_CF[which(lepA_final$Effect != "synonymous_variant")]),
+                                      sum(nuoL_final$isolates_CF[which(nuoL_final$Effect == "synonymous_variant")])/ sum(nuoL_final$isolates_CF[which(nuoL_final$Effect != "synonymous_variant")]),
+                                       sum(nuoL_final$isolates_non_CF[which(nuoL_final$Effect == "synonymous_variant")])/ sum(nuoL_final$isolates_non_CF[which(nuoL_final$Effect != "synonymous_variant")]),
+                                      sum(PA14_57070_final$isolates_CF[which(PA14_57070_final$Effect == "synonymous_variant")])/ sum(PA14_57070_final$isolates_CF[which(PA14_57070_final$Effect != "synonymous_variant")]),
+                                       sum(PA14_57070_final$isolates_non_CF[which(PA14_57070_final$Effect == "synonymous_variant")])/ sum(PA14_57070_final$isolates_non_CF[which(PA14_57070_final$Effect != "synonymous_variant")]),
+                                      sum(PA14_66700_final$isolates_CF[which(PA14_66700_final$Effect == "synonymous_variant")])/ sum(PA14_66700_final$isolates_CF[which(PA14_66700_final$Effect != "synonymous_variant")]),
+                                       sum(PA14_66700_final$isolates_non_CF[which(PA14_66700_final$Effect == "synonymous_variant")])/ sum(PA14_66700_final$isolates_non_CF[which(PA14_66700_final$Effect != "synonymous_variant")]),
+                                      sum(pagL_final$isolates_CF[which(pagL_final$Effect == "synonymous_variant")])/ sum(pagL_final$isolates_CF[which(pagL_final$Effect != "synonymous_variant")]),
+                                       sum(pagL_final$isolates_non_CF[which(pagL_final$Effect == "synonymous_variant")])/ sum(pagL_final$isolates_non_CF[which(pagL_final$Effect != "synonymous_variant")]),
+                                      sum(pelA_final$isolates_CF[which(pelA_final$Effect == "synonymous_variant")])/ sum(pelA_final$isolates_CF[which(pelA_final$Effect != "synonymous_variant")]),
+                                       sum(pelA_final$isolates_non_CF[which(pelA_final$Effect == "synonymous_variant")])/ sum(pelA_final$isolates_non_CF[which(pelA_final$Effect != "synonymous_variant")]),
+                                      sum(pelF_final$isolates_CF[which(pelF_final$Effect == "synonymous_variant")])/ sum(pelF_final$isolates_CF[which(pelF_final$Effect != "synonymous_variant")]),
+                                       sum(pelF_final$isolates_non_CF[which(pelF_final$Effect == "synonymous_variant")])/ sum(pelF_final$isolates_non_CF[which(pelF_final$Effect != "synonymous_variant")]),
+                                      sum(ptsP_final_unique$isolates_CF[which(ptsP_final_unique$Effect == "synonymous_variant")])/ sum(ptsP_final_unique$isolates_CF[which(ptsP_final_unique$Effect != "synonymous_variant")]),
+                                       sum(ptsP_final_unique$isolates_non_CF[which(ptsP_final_unique$Effect == "synonymous_variant")])/ sum(ptsP_final_unique$isolates_non_CF[which(ptsP_final_unique$Effect != "synonymous_variant")]),
+                                      sum(relA_final$isolates_CF[which(relA_final$Effect == "synonymous_variant")])/ sum(relA_final$isolates_CF[which(relA_final$Effect != "synonymous_variant")]),
+                                       sum(relA_final$isolates_non_CF[which(relA_final$Effect == "synonymous_variant")])/ sum(relA_final$isolates_non_CF[which(relA_final$Effect != "synonymous_variant")]),
+                                      sum(rhlR_final$isolates_CF[which(rhlR_final$Effect == "synonymous_variant")])/ sum(rhlR_final$isolates_CF[which(rhlR_final$Effect != "synonymous_variant")]),
+                                       sum(rhlR_final$isolates_non_CF[which(rhlR_final$Effect == "synonymous_variant")])/ sum(rhlR_final$isolates_non_CF[which(rhlR_final$Effect != "synonymous_variant")]),
+                                      sum(spoT_final$isolates_CF[which(spoT_final$Effect == "synonymous_variant")])/ sum(spoT_final$isolates_CF[which(spoT_final$Effect != "synonymous_variant")]),
+                                       sum(spoT_final$isolates_non_CF[which(spoT_final$Effect == "synonymous_variant")])/ sum(spoT_final$isolates_non_CF[which(spoT_final$Effect != "synonymous_variant")]),
+                                      sum(spuE_final$isolates_CF[which(spuE_final$Effect == "synonymous_variant")])/ sum(spuE_final$isolates_CF[which(spuE_final$Effect != "synonymous_variant")]),
+                                       sum(spuE_final$isolates_non_CF[which(spuE_final$Effect == "synonymous_variant")])/ sum(spuE_final$isolates_non_CF[which(spuE_final$Effect != "synonymous_variant")]),
+                                      sum(spuF_final$isolates_CF[which(spuF_final$Effect == "synonymous_variant")])/ sum(spuF_final$isolates_CF[which(spuF_final$Effect != "synonymous_variant")]),
+                                       sum(spuF_final$isolates_non_CF[which(spuF_final$Effect == "synonymous_variant")])/ sum(spuF_final$isolates_non_CF[which(spuF_final$Effect != "synonymous_variant")])
+                                      ),
+                              panel=c("CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF"
+                                      )
+                              
+                              )
+
+syn_non_syn_all$value_n_s <- 1/syn_non_syn_all$value
+syn_non_syn_all$dn_ds <- 0
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "algG")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "algG")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "algG")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "algU")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "algU")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "algU")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "fleR")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "fleR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "fleR")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "gacA")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "gacA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "gacA")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "gltR")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "gltR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "gltR")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "lasR")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "lasR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "lasR")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "lepA")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "lepA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "lepA")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "nuoL")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "nuoL")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "nuoL")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "PA14_57070")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "PA14_57070")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "PA14_57070")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "PA14_66700")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "PA14_66700")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "PA14_66700")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "pagL")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "pagL")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "pagL")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "pelA")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "pelA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "pelA")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "pelF")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "pelF")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "pelF")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "ptsP")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "ptsP")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "ptsP")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "relA")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "relA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "relA")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "rhlR")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "rhlR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "rhlR")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "spoT")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "spoT")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "spoT")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "spuE")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "spuE")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "spuE")]
+syn_non_syn_all$dn_ds[which(syn_non_syn_all$gene == "spuF")] <- syn_non_syn_all$value_n_s[which(syn_non_syn_all$gene == "spuF")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "spuF")]
+
+kable(syn_non_syn_all,"latex",caption = "Ratio syn/non-syn all positions",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=7)%>%
+    row_spec(0,bold = T)
+
+ggplot(data=syn_non_syn_all, aes(x=gene, y=value,fill=panel)) +
+  geom_bar(stat="identity",position=position_dodge())+
+  ylab("Ratio syn/non-syn")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+## Ratio dn/ds in the gene all positions
+
+```{r fig.cap="Ratio dn/ds per gene all positions",fig.height = 3.5, fig.width = 5.5}
+
+ggplot(data=syn_non_syn_all, aes(x=gene, y=dn_ds,fill=panel)) +
+  geom_bar(stat="identity",position=position_dodge())+
+  ylab("Ratio dn/ds")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+\newpage
+## Ratio syn/non-syn in the gene excluding all positions that are known in environmentals (by 2021)
+
+
+```{r fig.cap="Ratio syn/non-syn per gene no known environmental",fig.height = 3.5, fig.width = 5.5}
+syn_non_syn_no_environmental <- data.frame(gene=c("algG","algG","algU","algU","fleR","fleR","gacA","gacA","gltR","gltR","lasR","lasR",
+                                                  "lepA","lepA","nuoL","nuoL","PA14_57070","PA14_57070","PA14_66700","PA14_66700",
+                                                  "pagL","pagL","pelA","pelA","pelF","pelF","ptsP","ptsP","relA","relA",
+                                                  "rhlR","rhlR","spoT","spoT","spuE","spuE","spuF","spuF"
+                                                  ),
+                              value=c(sum(algG_final_unique$isolates_CF[which(algG_final_unique$Effect == "synonymous_variant")])/ sum(algG_final_unique$isolates_CF[which(algG_final_unique$Effect != "synonymous_variant")]),
+                                       sum(algG_final_unique$isolates_non_CF[which(algG_final_unique$Effect == "synonymous_variant")])/ sum(algG_final_unique$isolates_non_CF[which(algG_final_unique$Effect != "synonymous_variant")]),
+                                      sum(algU_final_unique$isolates_CF[which(algU_final_unique$Effect == "synonymous_variant")])/ sum(algU_final_unique$isolates_CF[which(algU_final_unique$Effect != "synonymous_variant")]),
+                                       sum(algU_final_unique$isolates_non_CF[which(algU_final_unique$Effect == "synonymous_variant")])/ sum(algU_final_unique$isolates_non_CF[which(algU_final_unique$Effect != "synonymous_variant")]),
+                                      sum(fleR_final_unique$isolates_CF[which(fleR_final_unique$Effect == "synonymous_variant")])/ sum(fleR_final_unique$isolates_CF[which(fleR_final_unique$Effect != "synonymous_variant")]),
+                                       sum(fleR_final_unique$isolates_non_CF[which(fleR_final_unique$Effect == "synonymous_variant")])/ sum(fleR_final_unique$isolates_non_CF[which(fleR_final_unique$Effect != "synonymous_variant")]),
+                                      sum(gacA_final_unique$isolates_CF[which(gacA_final_unique$Effect == "synonymous_variant")])/ sum(gacA_final_unique$isolates_CF[which(gacA_final_unique$Effect != "synonymous_variant")]),
+                                       sum(gacA_final_unique$isolates_non_CF[which(gacA_final_unique$Effect == "synonymous_variant")])/ sum(gacA_final_unique$isolates_non_CF[which(gacA_final_unique$Effect != "synonymous_variant")]),
+                                      sum(gltR_final_unique$isolates_CF[which(gltR_final_unique$Effect == "synonymous_variant")])/ sum(gltR_final_unique$isolates_CF[which(gltR_final_unique$Effect != "synonymous_variant")]),
+                                       sum(gltR_final_unique$isolates_non_CF[which(gltR_final_unique$Effect == "synonymous_variant")])/ sum(gltR_final_unique$isolates_non_CF[which(gltR_final_unique$Effect != "synonymous_variant")]),
+                                      sum(lasR_final_unique$isolates_CF[which(lasR_final_unique$Effect == "synonymous_variant")])/ sum(lasR_final_unique$isolates_CF[which(lasR_final_unique$Effect != "synonymous_variant")]),
+                                       sum(lasR_final_unique$isolates_non_CF[which(lasR_final_unique$Effect == "synonymous_variant")])/ sum(lasR_final_unique$isolates_non_CF[which(lasR_final_unique$Effect != "synonymous_variant")]),
+                                      sum(lepA_final_unique$isolates_CF[which(lepA_final_unique$Effect == "synonymous_variant")])/ sum(lepA_final_unique$isolates_CF[which(lepA_final_unique$Effect != "synonymous_variant")]),
+                                       sum(lepA_final_unique$isolates_non_CF[which(lepA_final_unique$Effect == "synonymous_variant")])/ sum(lepA_final_unique$isolates_non_CF[which(lepA_final_unique$Effect != "synonymous_variant")]),
+                                      sum(nuoL_final_unique$isolates_CF[which(nuoL_final_unique$Effect == "synonymous_variant")])/ sum(nuoL_final_unique$isolates_CF[which(nuoL_final_unique$Effect != "synonymous_variant")]),
+                                       sum(nuoL_final_unique$isolates_non_CF[which(nuoL_final_unique$Effect == "synonymous_variant")])/ sum(nuoL_final_unique$isolates_non_CF[which(nuoL_final_unique$Effect != "synonymous_variant")]),
+                                      sum(PA14_57070_final_unique$isolates_CF[which(PA14_57070_final_unique$Effect == "synonymous_variant")])/ sum(PA14_57070_final_unique$isolates_CF[which(PA14_57070_final_unique$Effect != "synonymous_variant")]),
+                                       sum(PA14_57070_final_unique$isolates_non_CF[which(PA14_57070_final_unique$Effect == "synonymous_variant")])/ sum(PA14_57070_final_unique$isolates_non_CF[which(PA14_57070_final_unique$Effect != "synonymous_variant")]),
+                                      sum(PA14_66700_final_unique$isolates_CF[which(PA14_66700_final_unique$Effect == "synonymous_variant")])/ sum(PA14_66700_final_unique$isolates_CF[which(PA14_66700_final_unique$Effect != "synonymous_variant")]),
+                                       sum(PA14_66700_final_unique$isolates_non_CF[which(PA14_66700_final_unique$Effect == "synonymous_variant")])/ sum(PA14_66700_final_unique$isolates_non_CF[which(PA14_66700_final_unique$Effect != "synonymous_variant")]),
+                                      sum(pagL_final_unique$isolates_CF[which(pagL_final_unique$Effect == "synonymous_variant")])/ sum(pagL_final_unique$isolates_CF[which(pagL_final_unique$Effect != "synonymous_variant")]),
+                                       sum(pagL_final_unique$isolates_non_CF[which(pagL_final_unique$Effect == "synonymous_variant")])/ sum(pagL_final_unique$isolates_non_CF[which(pagL_final_unique$Effect != "synonymous_variant")]),
+                                      sum(pelA_final_unique$isolates_CF[which(pelA_final_unique$Effect == "synonymous_variant")])/ sum(pelA_final_unique$isolates_CF[which(pelA_final_unique$Effect != "synonymous_variant")]),
+                                       sum(pelA_final_unique$isolates_non_CF[which(pelA_final_unique$Effect == "synonymous_variant")])/ sum(pelA_final_unique$isolates_non_CF[which(pelA_final_unique$Effect != "synonymous_variant")]),
+                                      sum(pelF_final_unique$isolates_CF[which(pelF_final_unique$Effect == "synonymous_variant")])/ sum(pelF_final_unique$isolates_CF[which(pelF_final_unique$Effect != "synonymous_variant")]),
+                                       sum(pelF_final_unique$isolates_non_CF[which(pelF_final_unique$Effect == "synonymous_variant")])/ sum(pelF_final_unique$isolates_non_CF[which(pelF_final_unique$Effect != "synonymous_variant")]),
+                                      sum(ptsP_final_unique$isolates_CF[which(ptsP_final_unique$Effect == "synonymous_variant")])/ sum(ptsP_final_unique$isolates_CF[which(ptsP_final_unique$Effect != "synonymous_variant")]),
+                                       sum(ptsP_final_unique$isolates_non_CF[which(ptsP_final_unique$Effect == "synonymous_variant")])/ sum(ptsP_final_unique$isolates_non_CF[which(ptsP_final_unique$Effect != "synonymous_variant")]),
+                                      sum(relA_final_unique$isolates_CF[which(relA_final_unique$Effect == "synonymous_variant")])/ sum(relA_final_unique$isolates_CF[which(relA_final_unique$Effect != "synonymous_variant")]),
+                                       sum(relA_final_unique$isolates_non_CF[which(relA_final_unique$Effect == "synonymous_variant")])/ sum(relA_final_unique$isolates_non_CF[which(relA_final_unique$Effect != "synonymous_variant")]),
+                                      sum(rhlR_final_unique$isolates_CF[which(rhlR_final_unique$Effect == "synonymous_variant")])/ sum(rhlR_final_unique$isolates_CF[which(rhlR_final_unique$Effect != "synonymous_variant")]),
+                                       sum(rhlR_final_unique$isolates_non_CF[which(rhlR_final_unique$Effect == "synonymous_variant")])/ sum(rhlR_final_unique$isolates_non_CF[which(rhlR_final_unique$Effect != "synonymous_variant")]),
+                                      sum(spoT_final_unique$isolates_CF[which(spoT_final_unique$Effect == "synonymous_variant")])/ sum(spoT_final_unique$isolates_CF[which(spoT_final_unique$Effect != "synonymous_variant")]),
+                                       sum(spoT_final_unique$isolates_non_CF[which(spoT_final_unique$Effect == "synonymous_variant")])/ sum(spoT_final_unique$isolates_non_CF[which(spoT_final_unique$Effect != "synonymous_variant")]),
+                                      sum(spuE_final_unique$isolates_CF[which(spuE_final_unique$Effect == "synonymous_variant")])/ sum(spuE_final_unique$isolates_CF[which(spuE_final_unique$Effect != "synonymous_variant")]),
+                                       sum(spuE_final_unique$isolates_non_CF[which(spuE_final_unique$Effect == "synonymous_variant")])/ sum(spuE_final_unique$isolates_non_CF[which(spuE_final_unique$Effect != "synonymous_variant")]),
+                                      sum(spuF_final_unique$isolates_CF[which(spuF_final_unique$Effect == "synonymous_variant")])/ sum(spuF_final_unique$isolates_CF[which(spuF_final_unique$Effect != "synonymous_variant")]),
+                                       sum(spuF_final_unique$isolates_non_CF[which(spuF_final_unique$Effect == "synonymous_variant")])/ sum(spuF_final_unique$isolates_non_CF[which(spuF_final_unique$Effect != "synonymous_variant")])
+                                      ),
+                              panel=c("CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF"
+                                      )
+                              
+                              )
+
+syn_non_syn_no_environmental$value_n_s <- 1/syn_non_syn_no_environmental$value
+syn_non_syn_no_environmental$dn_ds <- 0
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "algG")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "algG")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "algG")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "algU")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "algU")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "algU")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "fleR")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "fleR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "fleR")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "gacA")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "gacA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "gacA")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "gltR")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "gltR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "gltR")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "lasR")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "lasR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "lasR")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "lepA")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "lepA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "lepA")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "nuoL")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "nuoL")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "nuoL")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "PA14_57070")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "PA14_57070")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "PA14_57070")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "PA14_66700")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "PA14_66700")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "PA14_66700")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "pagL")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "pagL")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "pagL")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "pelA")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "pelA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "pelA")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "pelF")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "pelF")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "pelF")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "ptsP")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "ptsP")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "ptsP")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "relA")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "relA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "relA")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "rhlR")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "rhlR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "rhlR")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "spoT")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "spoT")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "spoT")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "spuE")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "spuE")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "spuE")]
+syn_non_syn_no_environmental$dn_ds[which(syn_non_syn_no_environmental$gene == "spuF")] <- syn_non_syn_no_environmental$value_n_s[which(syn_non_syn_no_environmental$gene == "spuF")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "spuF")]
+
+kable(syn_non_syn_no_environmental,"latex",caption = "Ratio syn/non-syn no environmental",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=7)%>%
+    row_spec(0,bold = T)
+
+ggplot(data=syn_non_syn_no_environmental, aes(x=gene, y=value,fill=panel)) +
+  geom_bar(stat="identity",position=position_dodge())+
+  ylab("Ratio syn/non-syn")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+## Ratio dn/ds in the gene excluding all positions that are known in environmentals (by 2021)
+
+```{r fig.cap="Ratio dn/ds per gene no known environmental",fig.height = 3.5, fig.width = 5.5}
+
+ggplot(data=syn_non_syn_no_environmental, aes(x=gene, y=dn_ds,fill=panel)) +
+  geom_bar(stat="identity",position=position_dodge())+
+  ylab("Ratio dn/ds")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+\newpage
+## Ratio syn/non-syn in the gene only found in 1 isolate
+
+No non-syn in ptsP, spuF in non-CF isolates and gltR in CF isolates.
+
+```{r fig.cap="Ratio syn/non-syn per gene found only in 1 isolate",fig.height = 3.5, fig.width = 5.5}
+syn_non_syn_one_strain <- data.frame(gene=c("algG","algG","algU","algU","fleR","fleR","gacA","gacA","gltR","gltR","lasR","lasR",
+                                     "lepA","lepA","nuoL","nuoL","PA14_57070","PA14_57070","PA14_66700","PA14_66700",
+                                     "pagL","pagL","pelA","pelA","pelF","pelF","ptsP","ptsP","relA","relA",
+                                     "rhlR","rhlR","spoT","spoT","spuE","spuE","spuF","spuF"
+                                     ),
+                              value=c(sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Effect == "synonymous_variant")])/ sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Effect == "synonymous_variant")])/ sum(algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(algU_final_one_strain$isolates_CF[which(algU_final_one_strain$Effect == "synonymous_variant")])/ sum(algU_final_one_strain$isolates_CF[which(algU_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(algU_final_one_strain$isolates_non_CF[which(algU_final_one_strain$Effect == "synonymous_variant")])/ sum(algU_final_one_strain$isolates_non_CF[which(algU_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(fleR_final_one_strain$isolates_CF[which(fleR_final_one_strain$Effect == "synonymous_variant")])/ sum(fleR_final_one_strain$isolates_CF[which(fleR_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(fleR_final_one_strain$isolates_non_CF[which(fleR_final_one_strain$Effect == "synonymous_variant")])/ sum(fleR_final_one_strain$isolates_non_CF[which(fleR_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(gacA_final_one_strain$isolates_CF[which(gacA_final_one_strain$Effect == "synonymous_variant")])/ sum(gacA_final_one_strain$isolates_CF[which(gacA_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(gacA_final_one_strain$isolates_non_CF[which(gacA_final_one_strain$Effect == "synonymous_variant")])/ sum(gacA_final_one_strain$isolates_non_CF[which(gacA_final_one_strain$Effect != "synonymous_variant")]),
+                                      NA,
+                                       sum(gltR_final_one_strain$isolates_non_CF[which(gltR_final_one_strain$Effect == "synonymous_variant")])/ sum(gltR_final_one_strain$isolates_non_CF[which(gltR_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(lasR_final_one_strain$isolates_CF[which(lasR_final_one_strain$Effect == "synonymous_variant")])/ sum(lasR_final_one_strain$isolates_CF[which(lasR_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(lasR_final_one_strain$isolates_non_CF[which(lasR_final_one_strain$Effect == "synonymous_variant")])/ sum(lasR_final_one_strain$isolates_non_CF[which(lasR_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(lepA_final_one_strain$isolates_CF[which(lepA_final_one_strain$Effect == "synonymous_variant")])/ sum(lepA_final_one_strain$isolates_CF[which(lepA_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(lepA_final_one_strain$isolates_non_CF[which(lepA_final_one_strain$Effect == "synonymous_variant")])/ sum(lepA_final_one_strain$isolates_non_CF[which(lepA_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(nuoL_final_one_strain$isolates_CF[which(nuoL_final_one_strain$Effect == "synonymous_variant")])/ sum(nuoL_final_one_strain$isolates_CF[which(nuoL_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(nuoL_final_one_strain$isolates_non_CF[which(nuoL_final_one_strain$Effect == "synonymous_variant")])/ sum(nuoL_final_one_strain$isolates_non_CF[which(nuoL_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(PA14_57070_final_one_strain$isolates_CF[which(PA14_57070_final_one_strain$Effect == "synonymous_variant")])/ sum(PA14_57070_final_one_strain$isolates_CF[which(PA14_57070_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(PA14_57070_final_one_strain$isolates_non_CF[which(PA14_57070_final_one_strain$Effect == "synonymous_variant")])/ sum(PA14_57070_final_one_strain$isolates_non_CF[which(PA14_57070_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(PA14_66700_final_one_strain$isolates_CF[which(PA14_66700_final_one_strain$Effect == "synonymous_variant")])/ sum(PA14_66700_final_one_strain$isolates_CF[which(PA14_66700_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(PA14_66700_final_one_strain$isolates_non_CF[which(PA14_66700_final_one_strain$Effect == "synonymous_variant")])/ sum(PA14_66700_final_one_strain$isolates_non_CF[which(PA14_66700_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(pagL_final_one_strain$isolates_CF[which(pagL_final_one_strain$Effect == "synonymous_variant")])/ sum(pagL_final_one_strain$isolates_CF[which(pagL_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(pagL_final_one_strain$isolates_non_CF[which(pagL_final_one_strain$Effect == "synonymous_variant")])/ sum(pagL_final_one_strain$isolates_non_CF[which(pagL_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(pelA_final_one_strain$isolates_CF[which(pelA_final_one_strain$Effect == "synonymous_variant")])/ sum(pelA_final_one_strain$isolates_CF[which(pelA_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(pelA_final_one_strain$isolates_non_CF[which(pelA_final_one_strain$Effect == "synonymous_variant")])/ sum(pelA_final_one_strain$isolates_non_CF[which(pelA_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(pelF_final_one_strain$isolates_CF[which(pelF_final_one_strain$Effect == "synonymous_variant")])/ sum(pelF_final_one_strain$isolates_CF[which(pelF_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(pelF_final_one_strain$isolates_non_CF[which(pelF_final_one_strain$Effect == "synonymous_variant")])/ sum(pelF_final_one_strain$isolates_non_CF[which(pelF_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(ptsP_final_one_strain$isolates_CF[which(ptsP_final_one_strain$Effect == "synonymous_variant")])/ sum(ptsP_final_one_strain$isolates_CF[which(ptsP_final_one_strain$Effect != "synonymous_variant")]),
+                                       NA,
+                                      sum(relA_final_one_strain$isolates_CF[which(relA_final_one_strain$Effect == "synonymous_variant")])/ sum(relA_final_one_strain$isolates_CF[which(relA_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(relA_final_one_strain$isolates_non_CF[which(relA_final_one_strain$Effect == "synonymous_variant")])/ sum(relA_final_one_strain$isolates_non_CF[which(relA_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(rhlR_final_one_strain$isolates_CF[which(rhlR_final_one_strain$Effect == "synonymous_variant")])/ sum(rhlR_final_one_strain$isolates_CF[which(rhlR_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(rhlR_final_one_strain$isolates_non_CF[which(rhlR_final_one_strain$Effect == "synonymous_variant")])/ sum(rhlR_final_one_strain$isolates_non_CF[which(rhlR_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(spoT_final_one_strain$isolates_CF[which(spoT_final_one_strain$Effect == "synonymous_variant")])/ sum(spoT_final_one_strain$isolates_CF[which(spoT_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(spoT_final_one_strain$isolates_non_CF[which(spoT_final_one_strain$Effect == "synonymous_variant")])/ sum(spoT_final_one_strain$isolates_non_CF[which(spoT_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(spuE_final_one_strain$isolates_CF[which(spuE_final_one_strain$Effect == "synonymous_variant")])/ sum(spuE_final_one_strain$isolates_CF[which(spuE_final_one_strain$Effect != "synonymous_variant")]),
+                                       sum(spuE_final_one_strain$isolates_non_CF[which(spuE_final_one_strain$Effect == "synonymous_variant")])/ sum(spuE_final_one_strain$isolates_non_CF[which(spuE_final_one_strain$Effect != "synonymous_variant")]),
+                                      sum(spuF_final_one_strain$isolates_CF[which(spuF_final_one_strain$Effect == "synonymous_variant")])/ sum(spuF_final_one_strain$isolates_CF[which(spuF_final_one_strain$Effect != "synonymous_variant")]),
+                                       NA
+                                      ),
+                              panel=c("CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF"
+                                      )
+                              
+                              )
+syn_non_syn_one_strain$value_n_s <- 1/syn_non_syn_one_strain$value
+syn_non_syn_one_strain$dn_ds <- 0
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "algG")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "algG")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "algG")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "algU")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "algU")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "algU")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "fleR")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "fleR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "fleR")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "gacA")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "gacA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "gacA")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "gltR")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "gltR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "gltR")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "lasR")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "lasR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "lasR")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "lepA")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "lepA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "lepA")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "nuoL")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "nuoL")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "nuoL")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "PA14_57070")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "PA14_57070")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "PA14_57070")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "PA14_66700")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "PA14_66700")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "PA14_66700")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "pagL")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "pagL")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "pagL")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "pelA")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "pelA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "pelA")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "pelF")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "pelF")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "pelF")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "ptsP")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "ptsP")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "ptsP")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "relA")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "relA")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "relA")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "rhlR")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "rhlR")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "rhlR")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "spoT")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "spoT")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "spoT")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "spuE")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "spuE")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "spuE")]
+syn_non_syn_one_strain$dn_ds[which(syn_non_syn_one_strain$gene == "spuF")] <- syn_non_syn_one_strain$value_n_s[which(syn_non_syn_one_strain$gene == "spuF")] * Factors_dn_ds$Factor[which(Factors_dn_ds$Gene == "spuF")]
+
+kable(syn_non_syn_one_strain,"latex",caption = "Ratio syn/non-syn only in one strain",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=7)%>%
+    row_spec(0,bold = T)
+
+ggplot(data=syn_non_syn_one_strain, aes(x=gene, y=value,fill=panel)) +
+  geom_bar(stat="identity",position=position_dodge())+
+  ylab("Ratio syn/non-syn")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+```
+
+## Ratio dn/ds in the gene only found in 1 isolate
+
+```{r fig.cap="Ratio dn/ds per gene only found in 1 isolate",fig.height = 3.5, fig.width = 5.5}
+
+ggplot(data=syn_non_syn_one_strain, aes(x=gene, y=dn_ds,fill=panel)) +
+  geom_bar(stat="identity",position=position_dodge())+
+  ylab("Ratio dn/ds")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+\newpage
+
+## Ratio Ts/Tv in the gene all positions
+
+```{r fig.cap="Ratio Ts/Tv per gene all positions",fig.height = 3.5, fig.width = 5.5}
+Ts_Tv_all <- data.frame(gene=c("algG","algG","algU","algU","fleR","fleR","gacA","gacA","gltR","gltR","lasR","lasR",
+                               "lepA","lepA","nuoL","nuoL","PA14_57070","PA14_57070","PA14_66700","PA14_66700",
+                               "pagL","pagL","pelA","pelA","pelF","pelF","ptsP","ptsP","relA","relA",
+                               "rhlR","rhlR","spoT","spoT","spuE","spuE","spuF","spuF"
+                               ),
+                              value=c(sum(algG_final$isolates_CF[which(algG_final$Ts_Tv == "Transition")])/ sum(algG_final$isolates_CF[which(algG_final$Ts_Tv == "Transversion")]),
+                                       sum(algG_final$isolates_non_CF[which(algG_final$Ts_Tv == "Transition")])/ sum(algG_final$isolates_non_CF[which(algG_final$Ts_Tv == "Transversion")]),
+                                      sum(algU_final$isolates_CF[which(algU_final$Ts_Tv == "Transition")])/ sum(algU_final$isolates_CF[which(algU_final$Ts_Tv == "Transversion")]),
+                                       sum(algU_final$isolates_non_CF[which(algU_final$Ts_Tv == "Transition")])/ sum(algU_final$isolates_non_CF[which(algU_final$Ts_Tv == "Transversion")]),
+                                      sum(fleR_final$isolates_CF[which(fleR_final$Ts_Tv == "Transition")])/ sum(fleR_final$isolates_CF[which(fleR_final$Ts_Tv == "Transversion")]),
+                                       sum(fleR_final$isolates_non_CF[which(fleR_final$Ts_Tv == "Transition")])/ sum(fleR_final$isolates_non_CF[which(fleR_final$Ts_Tv == "Transversion")]),sum(gacA_final$isolates_CF[which(gacA_final$Ts_Tv == "Transition")])/ sum(gacA_final$isolates_CF[which(gacA_final$Ts_Tv == "Transversion")]),
+                                       sum(gacA_final$isolates_non_CF[which(gacA_final$Ts_Tv == "Transition")])/ sum(gacA_final$isolates_non_CF[which(gacA_final$Ts_Tv == "Transversion")]),
+                                      sum(gltR_final$isolates_CF[which(gltR_final$Ts_Tv == "Transition")])/ sum(gltR_final$isolates_CF[which(gltR_final$Ts_Tv == "Transversion")]),
+                                       sum(gltR_final$isolates_non_CF[which(gltR_final$Ts_Tv == "Transition")])/ sum(gltR_final$isolates_non_CF[which(gltR_final$Ts_Tv == "Transversion")]),
+                                      sum(lasR_final$isolates_CF[which(lasR_final$Ts_Tv == "Transition")])/ sum(lasR_final$isolates_CF[which(lasR_final$Ts_Tv == "Transversion")]),
+                                       sum(lasR_final$isolates_non_CF[which(lasR_final$Ts_Tv == "Transition")])/ sum(lasR_final$isolates_non_CF[which(lasR_final$Ts_Tv == "Transversion")]),
+                                      sum(lepA_final$isolates_CF[which(lepA_final$Ts_Tv == "Transition")])/ sum(lepA_final$isolates_CF[which(lepA_final$Ts_Tv == "Transversion")]),
+                                       sum(lepA_final$isolates_non_CF[which(lepA_final$Ts_Tv == "Transition")])/ sum(lepA_final$isolates_non_CF[which(lepA_final$Ts_Tv == "Transversion")]),
+                                      sum(nuoL_final$isolates_CF[which(nuoL_final$Ts_Tv == "Transition")])/ sum(nuoL_final$isolates_CF[which(nuoL_final$Ts_Tv == "Transversion")]),
+                                       sum(nuoL_final$isolates_non_CF[which(nuoL_final$Ts_Tv == "Transition")])/ sum(nuoL_final$isolates_non_CF[which(nuoL_final$Ts_Tv == "Transversion")]),
+                                      sum(PA14_57070_final$isolates_CF[which(PA14_57070_final$Ts_Tv == "Transition")])/ sum(PA14_57070_final$isolates_CF[which(PA14_57070_final$Ts_Tv == "Transversion")]),
+                                       sum(PA14_57070_final$isolates_non_CF[which(PA14_57070_final$Ts_Tv == "Transition")])/ sum(PA14_57070_final$isolates_non_CF[which(PA14_57070_final$Ts_Tv == "Transversion")]),
+                                      sum(PA14_66700_final$isolates_CF[which(PA14_66700_final$Ts_Tv == "Transition")])/ sum(PA14_66700_final$isolates_CF[which(PA14_66700_final$Ts_Tv == "Transversion")]),
+                                       sum(PA14_66700_final$isolates_non_CF[which(PA14_66700_final$Ts_Tv == "Transition")])/ sum(PA14_66700_final$isolates_non_CF[which(PA14_66700_final$Ts_Tv == "Transversion")]),
+                                      sum(pagL_final$isolates_CF[which(pagL_final$Ts_Tv == "Transition")])/ sum(pagL_final$isolates_CF[which(pagL_final$Ts_Tv == "Transversion")]),
+                                       sum(pagL_final$isolates_non_CF[which(pagL_final$Ts_Tv == "Transition")])/ sum(pagL_final$isolates_non_CF[which(pagL_final$Ts_Tv == "Transversion")]),
+                                      sum(pelA_final$isolates_CF[which(pelA_final$Ts_Tv == "Transition")])/ sum(pelA_final$isolates_CF[which(pelA_final$Ts_Tv == "Transversion")]),
+                                       sum(pelA_final$isolates_non_CF[which(pelA_final$Ts_Tv == "Transition")])/ sum(pelA_final$isolates_non_CF[which(pelA_final$Ts_Tv == "Transversion")]),
+                                      sum(pelF_final$isolates_CF[which(pelF_final$Ts_Tv == "Transition")])/ sum(pelF_final$isolates_CF[which(pelF_final$Ts_Tv == "Transversion")]),
+                                       sum(pelF_final$isolates_non_CF[which(pelF_final$Ts_Tv == "Transition")])/ sum(pelF_final$isolates_non_CF[which(pelF_final$Ts_Tv == "Transversion")]),
+                                      sum(ptsP_final$isolates_CF[which(ptsP_final$Ts_Tv == "Transition")])/ sum(ptsP_final$isolates_CF[which(ptsP_final$Ts_Tv == "Transversion")]),
+                                       sum(ptsP_final$isolates_non_CF[which(ptsP_final$Ts_Tv == "Transition")])/ sum(ptsP_final$isolates_non_CF[which(ptsP_final$Ts_Tv == "Transversion")]),
+                                      sum(relA_final$isolates_CF[which(relA_final$Ts_Tv == "Transition")])/ sum(relA_final$isolates_CF[which(relA_final$Ts_Tv == "Transversion")]),
+                                       sum(relA_final$isolates_non_CF[which(relA_final$Ts_Tv == "Transition")])/ sum(relA_final$isolates_non_CF[which(relA_final$Ts_Tv == "Transversion")]),
+                                      sum(rhlR_final$isolates_CF[which(rhlR_final$Ts_Tv == "Transition")])/ sum(rhlR_final$isolates_CF[which(rhlR_final$Ts_Tv == "Transversion")]),
+                                       sum(rhlR_final$isolates_non_CF[which(rhlR_final$Ts_Tv == "Transition")])/ sum(rhlR_final$isolates_non_CF[which(rhlR_final$Ts_Tv == "Transversion")]),
+                                      sum(spoT_final$isolates_CF[which(spoT_final$Ts_Tv == "Transition")])/ sum(spoT_final$isolates_CF[which(spoT_final$Ts_Tv == "Transversion")]),
+                                       sum(spoT_final$isolates_non_CF[which(spoT_final$Ts_Tv == "Transition")])/ sum(spoT_final$isolates_non_CF[which(spoT_final$Ts_Tv == "Transversion")]),
+                                      sum(spuE_final$isolates_CF[which(spuE_final$Ts_Tv == "Transition")])/ sum(spuE_final$isolates_CF[which(spuE_final$Ts_Tv == "Transversion")]),
+                                       sum(spuE_final$isolates_non_CF[which(spuE_final$Ts_Tv == "Transition")])/ sum(spuE_final$isolates_non_CF[which(spuE_final$Ts_Tv == "Transversion")]),
+                                      sum(spuF_final$isolates_CF[which(spuF_final$Ts_Tv == "Transition")])/ sum(spuF_final$isolates_CF[which(spuF_final$Ts_Tv == "Transversion")]),
+                                       sum(spuF_final$isolates_non_CF[which(spuF_final$Ts_Tv == "Transition")])/ sum(spuF_final$isolates_non_CF[which(spuF_final$Ts_Tv == "Transversion")])
+                                      ),
+                              panel=c("CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF"
+                                      )
+                              
+                              )
+kable(Ts_Tv_all,"latex",caption = "Ratio Ts/Tv in all positions",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=4)%>%
+    row_spec(0,bold = T)
+
+ggplot(data=Ts_Tv_all, aes(x=gene, y=value,fill=panel)) +
+  geom_bar(stat="identity",position=position_dodge())+
+  ylab("Ratio Ts/Tv")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+```
+
+## Ratio Tv/Ts vs percentage SNPs in the gene all positions per gene
+
+```{r fig.cap="Ratio Tv/Ts vs % SNP per gene all positions",fig.height = 3.5, fig.width = 5.5}
+
+Tv_Ts_vs_percentage_all <- snp_percentage_all[,1:2]
+
+Tv_Ts_vs_percentage_all$Tv_Ts <- c(sum(algG_final$isolates_CF[which(algG_final$Ts_Tv == "Transversion")],algG_final$isolates_non_CF[which(algG_final$Ts_Tv == "Transversion")]) / sum(algG_final$isolates_CF[which(algG_final$Ts_Tv == "Transition")],algG_final$isolates_non_CF[which(algG_final$Ts_Tv == "Transition")]),
+                               sum(algU_final$isolates_CF[which(algU_final$Ts_Tv == "Transversion")],algU_final$isolates_non_CF[which(algU_final$Ts_Tv == "Transversion")]) / sum(algU_final$isolates_CF[which(algU_final$Ts_Tv == "Transition")],algU_final$isolates_non_CF[which(algU_final$Ts_Tv == "Transition")]),
+                               sum(fleR_final$isolates_CF[which(fleR_final$Ts_Tv == "Transversion")],fleR_final$isolates_non_CF[which(fleR_final$Ts_Tv == "Transversion")]) / sum(fleR_final$isolates_CF[which(fleR_final$Ts_Tv == "Transition")],fleR_final$isolates_non_CF[which(fleR_final$Ts_Tv == "Transition")]),
+                               sum(gacA_final$isolates_CF[which(gacA_final$Ts_Tv == "Transversion")],gacA_final$isolates_non_CF[which(gacA_final$Ts_Tv == "Transversion")]) / sum(gacA_final$isolates_CF[which(gacA_final$Ts_Tv == "Transition")],gacA_final$isolates_non_CF[which(gacA_final$Ts_Tv == "Transition")]),
+                               sum(gltR_final$isolates_CF[which(gltR_final$Ts_Tv == "Transversion")],gltR_final$isolates_non_CF[which(gltR_final$Ts_Tv == "Transversion")]) / sum(gltR_final$isolates_CF[which(gltR_final$Ts_Tv == "Transition")],gltR_final$isolates_non_CF[which(gltR_final$Ts_Tv == "Transition")]),
+                               sum(lasR_final$isolates_CF[which(lasR_final$Ts_Tv == "Transversion")],lasR_final$isolates_non_CF[which(lasR_final$Ts_Tv == "Transversion")]) / sum(lasR_final$isolates_CF[which(lasR_final$Ts_Tv == "Transition")],lasR_final$isolates_non_CF[which(lasR_final$Ts_Tv == "Transition")]),
+                               sum(lepA_final$isolates_CF[which(lepA_final$Ts_Tv == "Transversion")],lepA_final$isolates_non_CF[which(lepA_final$Ts_Tv == "Transversion")]) / sum(lepA_final$isolates_CF[which(lepA_final$Ts_Tv == "Transition")],lepA_final$isolates_non_CF[which(lepA_final$Ts_Tv == "Transition")]),
+                               sum(nuoL_final$isolates_CF[which(nuoL_final$Ts_Tv == "Transversion")],nuoL_final$isolates_non_CF[which(nuoL_final$Ts_Tv == "Transversion")]) / sum(nuoL_final$isolates_CF[which(nuoL_final$Ts_Tv == "Transition")],nuoL_final$isolates_non_CF[which(nuoL_final$Ts_Tv == "Transition")]),
+                               sum(PA14_57070_final$isolates_CF[which(PA14_57070_final$Ts_Tv == "Transversion")],PA14_57070_final$isolates_non_CF[which(PA14_57070_final$Ts_Tv == "Transversion")]) / sum(PA14_57070_final$isolates_CF[which(PA14_57070_final$Ts_Tv == "Transition")],PA14_57070_final$isolates_non_CF[which(PA14_57070_final$Ts_Tv == "Transition")]),
+                               sum(PA14_66700_final$isolates_CF[which(PA14_66700_final$Ts_Tv == "Transversion")],PA14_66700_final$isolates_non_CF[which(PA14_66700_final$Ts_Tv == "Transversion")]) / sum(PA14_66700_final$isolates_CF[which(PA14_66700_final$Ts_Tv == "Transition")],PA14_66700_final$isolates_non_CF[which(PA14_66700_final$Ts_Tv == "Transition")]),
+                               sum(pagL_final$isolates_CF[which(pagL_final$Ts_Tv == "Transversion")],pagL_final$isolates_non_CF[which(pagL_final$Ts_Tv == "Transversion")]) / sum(pagL_final$isolates_CF[which(pagL_final$Ts_Tv == "Transition")],pagL_final$isolates_non_CF[which(pagL_final$Ts_Tv == "Transition")]),
+                               sum(pelA_final$isolates_CF[which(pelA_final$Ts_Tv == "Transversion")],pelA_final$isolates_non_CF[which(pelA_final$Ts_Tv == "Transversion")]) / sum(pelA_final$isolates_CF[which(pelA_final$Ts_Tv == "Transition")],pelA_final$isolates_non_CF[which(pelA_final$Ts_Tv == "Transition")]),
+                               sum(pelF_final$isolates_CF[which(pelF_final$Ts_Tv == "Transversion")],pelF_final$isolates_non_CF[which(pelF_final$Ts_Tv == "Transversion")]) / sum(pelF_final$isolates_CF[which(pelF_final$Ts_Tv == "Transition")],pelF_final$isolates_non_CF[which(pelF_final$Ts_Tv == "Transition")]),
+                               sum(ptsP_final$isolates_CF[which(ptsP_final$Ts_Tv == "Transversion")],ptsP_final$isolates_non_CF[which(ptsP_final$Ts_Tv == "Transversion")]) / sum(ptsP_final$isolates_CF[which(ptsP_final$Ts_Tv == "Transition")],ptsP_final$isolates_non_CF[which(ptsP_final$Ts_Tv == "Transition")]),
+                               sum(relA_final$isolates_CF[which(relA_final$Ts_Tv == "Transversion")],relA_final$isolates_non_CF[which(relA_final$Ts_Tv == "Transversion")]) / sum(relA_final$isolates_CF[which(relA_final$Ts_Tv == "Transition")],relA_final$isolates_non_CF[which(relA_final$Ts_Tv == "Transition")]),
+                               sum(rhlR_final$isolates_CF[which(rhlR_final$Ts_Tv == "Transversion")],rhlR_final$isolates_non_CF[which(rhlR_final$Ts_Tv == "Transversion")]) / sum(rhlR_final$isolates_CF[which(rhlR_final$Ts_Tv == "Transition")],rhlR_final$isolates_non_CF[which(rhlR_final$Ts_Tv == "Transition")]),
+                               sum(spoT_final$isolates_CF[which(spoT_final$Ts_Tv == "Transversion")],spoT_final$isolates_non_CF[which(spoT_final$Ts_Tv == "Transversion")]) / sum(spoT_final$isolates_CF[which(spoT_final$Ts_Tv == "Transition")],spoT_final$isolates_non_CF[which(spoT_final$Ts_Tv == "Transition")]),
+                               sum(spuE_final$isolates_CF[which(spuE_final$Ts_Tv == "Transversion")],spuE_final$isolates_non_CF[which(spuE_final$Ts_Tv == "Transversion")]) / sum(spuE_final$isolates_CF[which(spuE_final$Ts_Tv == "Transition")],spuE_final$isolates_non_CF[which(spuE_final$Ts_Tv == "Transition")]),
+                               sum(spuF_final$isolates_CF[which(spuF_final$Ts_Tv == "Transversion")],spuF_final$isolates_non_CF[which(spuF_final$Ts_Tv == "Transversion")]) / sum(spuF_final$isolates_CF[which(spuF_final$Ts_Tv == "Transition")],spuF_final$isolates_non_CF[which(spuF_final$Ts_Tv == "Transition")])
+)
+
+kable(Tv_Ts_vs_percentage_all,"latex",caption = "Ratio Tv/Ts vs SNP Percentage in all positions",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=7)%>%
+    row_spec(0,bold = T)
+
+
+ggplot(data=Tv_Ts_vs_percentage_all, aes(Tv_Ts, percentage)) +
+  geom_point()
+  
+```
+
+
+\newpage
+## Ratio Ts/Tv in the gene excluding all positions that are known in environmentals (by 2021)
+
+```{r fig.cap="Ratio Ts/Tv per gene excluding known environmental",fig.height = 3.5, fig.width = 5.5}
+Ts_Tv_no_environmental <- data.frame(gene=c("algG","algG","algU","algU","fleR","fleR","gacA","gacA","gltR","gltR","lasR","lasR",
+                                     "lepA","lepA","nuoL","nuoL","PA14_57070","PA14_57070","PA14_66700","PA14_66700",
+                                     "pagL","pagL","pelA","pelA","pelF","pelF","ptsP","ptsP","relA","relA",
+                                     "rhlR","rhlR","spoT","spoT","spuE","spuE","spuF","spuF"
+                                     ),
+                              value=c(sum(algG_final_unique$isolates_CF[which(algG_final_unique$Ts_Tv == "Transition")])/ sum(algG_final_unique$isolates_CF[which(algG_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(algG_final_unique$isolates_non_CF[which(algG_final_unique$Ts_Tv == "Transition")])/ sum(algG_final_unique$isolates_non_CF[which(algG_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(algU_final_unique$isolates_CF[which(algU_final_unique$Ts_Tv == "Transition")])/ sum(algU_final_unique$isolates_CF[which(algU_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(algU_final_unique$isolates_non_CF[which(algU_final_unique$Ts_Tv == "Transition")])/ sum(algU_final_unique$isolates_non_CF[which(algU_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(fleR_final_unique$isolates_CF[which(fleR_final_unique$Ts_Tv == "Transition")])/ sum(fleR_final_unique$isolates_CF[which(fleR_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(fleR_final_unique$isolates_non_CF[which(fleR_final_unique$Ts_Tv == "Transition")])/ sum(fleR_final_unique$isolates_non_CF[which(fleR_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(gacA_final_unique$isolates_CF[which(gacA_final_unique$Ts_Tv == "Transition")])/ sum(gacA_final_unique$isolates_CF[which(gacA_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(gacA_final_unique$isolates_non_CF[which(gacA_final_unique$Ts_Tv == "Transition")])/ sum(gacA_final_unique$isolates_non_CF[which(gacA_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(gltR_final_unique$isolates_CF[which(gltR_final_unique$Ts_Tv == "Transition")])/ sum(gltR_final_unique$isolates_CF[which(gltR_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(gltR_final_unique$isolates_non_CF[which(gltR_final_unique$Ts_Tv == "Transition")])/ sum(gltR_final_unique$isolates_non_CF[which(gltR_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(lasR_final_unique$isolates_CF[which(lasR_final_unique$Ts_Tv == "Transition")])/ sum(lasR_final_unique$isolates_CF[which(lasR_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(lasR_final_unique$isolates_non_CF[which(lasR_final_unique$Ts_Tv == "Transition")])/ sum(lasR_final_unique$isolates_non_CF[which(lasR_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(lepA_final_unique$isolates_CF[which(lepA_final_unique$Ts_Tv == "Transition")])/ sum(lepA_final_unique$isolates_CF[which(lepA_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(lepA_final_unique$isolates_non_CF[which(lepA_final_unique$Ts_Tv == "Transition")])/ sum(lepA_final_unique$isolates_non_CF[which(lepA_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(nuoL_final_unique$isolates_CF[which(nuoL_final_unique$Ts_Tv == "Transition")])/ sum(nuoL_final_unique$isolates_CF[which(nuoL_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(nuoL_final_unique$isolates_non_CF[which(nuoL_final_unique$Ts_Tv == "Transition")])/ sum(nuoL_final_unique$isolates_non_CF[which(nuoL_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(PA14_57070_final_unique$isolates_CF[which(PA14_57070_final_unique$Ts_Tv == "Transition")])/ sum(PA14_57070_final_unique$isolates_CF[which(PA14_57070_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(PA14_57070_final_unique$isolates_non_CF[which(PA14_57070_final_unique$Ts_Tv == "Transition")])/ sum(PA14_57070_final_unique$isolates_non_CF[which(PA14_57070_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(PA14_66700_final_unique$isolates_CF[which(PA14_66700_final_unique$Ts_Tv == "Transition")])/ sum(PA14_66700_final_unique$isolates_CF[which(PA14_66700_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(PA14_66700_final_unique$isolates_non_CF[which(PA14_66700_final_unique$Ts_Tv == "Transition")])/ sum(PA14_66700_final_unique$isolates_non_CF[which(PA14_66700_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(pagL_final_unique$isolates_CF[which(pagL_final_unique$Ts_Tv == "Transition")])/ sum(pagL_final_unique$isolates_CF[which(pagL_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(pagL_final_unique$isolates_non_CF[which(pagL_final_unique$Ts_Tv == "Transition")])/ sum(pagL_final_unique$isolates_non_CF[which(pagL_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(pelA_final_unique$isolates_CF[which(pelA_final_unique$Ts_Tv == "Transition")])/ sum(pelA_final_unique$isolates_CF[which(pelA_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(pelA_final_unique$isolates_non_CF[which(pelA_final_unique$Ts_Tv == "Transition")])/ sum(pelA_final_unique$isolates_non_CF[which(pelA_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(pelF_final_unique$isolates_CF[which(pelF_final_unique$Ts_Tv == "Transition")])/ sum(pelF_final_unique$isolates_CF[which(pelF_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(pelF_final_unique$isolates_non_CF[which(pelF_final_unique$Ts_Tv == "Transition")])/ sum(pelF_final_unique$isolates_non_CF[which(pelF_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(ptsP_final_unique$isolates_CF[which(ptsP_final_unique$Ts_Tv == "Transition")])/ sum(ptsP_final_unique$isolates_CF[which(ptsP_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(ptsP_final_unique$isolates_non_CF[which(ptsP_final_unique$Ts_Tv == "Transition")])/ sum(ptsP_final_unique$isolates_non_CF[which(ptsP_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(relA_final_unique$isolates_CF[which(relA_final_unique$Ts_Tv == "Transition")])/ sum(relA_final_unique$isolates_CF[which(relA_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(relA_final_unique$isolates_non_CF[which(relA_final_unique$Ts_Tv == "Transition")])/ sum(relA_final_unique$isolates_non_CF[which(relA_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(rhlR_final_unique$isolates_CF[which(rhlR_final_unique$Ts_Tv == "Transition")])/ sum(rhlR_final_unique$isolates_CF[which(rhlR_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(rhlR_final_unique$isolates_non_CF[which(rhlR_final_unique$Ts_Tv == "Transition")])/ sum(rhlR_final_unique$isolates_non_CF[which(rhlR_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(spoT_final_unique$isolates_CF[which(spoT_final_unique$Ts_Tv == "Transition")])/ sum(spoT_final_unique$isolates_CF[which(spoT_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(spoT_final_unique$isolates_non_CF[which(spoT_final_unique$Ts_Tv == "Transition")])/ sum(spoT_final_unique$isolates_non_CF[which(spoT_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(spuE_final_unique$isolates_CF[which(spuE_final_unique$Ts_Tv == "Transition")])/ sum(spuE_final_unique$isolates_CF[which(spuE_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(spuE_final_unique$isolates_non_CF[which(spuE_final_unique$Ts_Tv == "Transition")])/ sum(spuE_final_unique$isolates_non_CF[which(spuE_final_unique$Ts_Tv == "Transversion")]),
+                                      sum(spuF_final_unique$isolates_CF[which(spuF_final_unique$Ts_Tv == "Transition")])/ sum(spuF_final_unique$isolates_CF[which(spuF_final_unique$Ts_Tv == "Transversion")]),
+                                       sum(spuF_final_unique$isolates_non_CF[which(spuF_final_unique$Ts_Tv == "Transition")])/ sum(spuF_final_unique$isolates_non_CF[which(spuF_final_unique$Ts_Tv == "Transversion")])
+                                      ),
+                              panel=c("CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF"
+                                      )
+                              
+                              )
+kable(Ts_Tv_no_environmental,"latex",caption = "Ratio Ts/Tv excluding environmental positions",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=4)%>%
+    row_spec(0,bold = T)
+
+
+ggplot(data=Ts_Tv_no_environmental, aes(x=gene, y=value,fill=panel)) +
+  geom_bar(stat="identity",position=position_dodge())+
+  ylab("Ratio Ts/Tv")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+
+```
+
+## Ratio Tv/Ts vs percentage SNPs in the gene excluding all positions that are known in environmentals (by 2021)
+
+```{r fig.cap="Ratio Tv/Ts vs % SNP per gene excluding known environmental",fig.height = 4, fig.width = 6}
+
+Tv_Ts_vs_percentage_no_environmental <- snp_percentage_no_environmental[,1:2]
+
+Tv_Ts_vs_percentage_no_environmental$Tv_Ts <- c(sum(algG_final_unique$isolates_CF[which(algG_final_unique$Ts_Tv == "Transversion")],algG_final_unique$isolates_non_CF[which(algG_final_unique$Ts_Tv == "Transversion")]) / sum(algG_final_unique$isolates_CF[which(algG_final_unique$Ts_Tv == "Transition")],algG_final_unique$isolates_non_CF[which(algG_final_unique$Ts_Tv == "Transition")]),
+                               sum(algU_final_unique$isolates_CF[which(algU_final_unique$Ts_Tv == "Transversion")],algU_final_unique$isolates_non_CF[which(algU_final_unique$Ts_Tv == "Transversion")]) / sum(algU_final_unique$isolates_CF[which(algU_final_unique$Ts_Tv == "Transition")],algU_final_unique$isolates_non_CF[which(algU_final_unique$Ts_Tv == "Transition")]),
+                               sum(fleR_final_unique$isolates_CF[which(fleR_final_unique$Ts_Tv == "Transversion")],fleR_final_unique$isolates_non_CF[which(fleR_final_unique$Ts_Tv == "Transversion")]) / sum(fleR_final_unique$isolates_CF[which(fleR_final_unique$Ts_Tv == "Transition")],fleR_final_unique$isolates_non_CF[which(fleR_final_unique$Ts_Tv == "Transition")]),
+                               sum(gacA_final_unique$isolates_CF[which(gacA_final_unique$Ts_Tv == "Transversion")],gacA_final_unique$isolates_non_CF[which(gacA_final_unique$Ts_Tv == "Transversion")]) / sum(gacA_final_unique$isolates_CF[which(gacA_final_unique$Ts_Tv == "Transition")],gacA_final_unique$isolates_non_CF[which(gacA_final_unique$Ts_Tv == "Transition")]),
+                               sum(gltR_final_unique$isolates_CF[which(gltR_final_unique$Ts_Tv == "Transversion")],gltR_final_unique$isolates_non_CF[which(gltR_final_unique$Ts_Tv == "Transversion")]) / sum(gltR_final_unique$isolates_CF[which(gltR_final_unique$Ts_Tv == "Transition")],gltR_final_unique$isolates_non_CF[which(gltR_final_unique$Ts_Tv == "Transition")]),
+                               sum(lasR_final_unique$isolates_CF[which(lasR_final_unique$Ts_Tv == "Transversion")],lasR_final_unique$isolates_non_CF[which(lasR_final_unique$Ts_Tv == "Transversion")]) / sum(lasR_final_unique$isolates_CF[which(lasR_final_unique$Ts_Tv == "Transition")],lasR_final_unique$isolates_non_CF[which(lasR_final_unique$Ts_Tv == "Transition")]),
+                               sum(lepA_final_unique$isolates_CF[which(lepA_final_unique$Ts_Tv == "Transversion")],lepA_final_unique$isolates_non_CF[which(lepA_final_unique$Ts_Tv == "Transversion")]) / sum(lepA_final_unique$isolates_CF[which(lepA_final_unique$Ts_Tv == "Transition")],lepA_final_unique$isolates_non_CF[which(lepA_final_unique$Ts_Tv == "Transition")]),
+                               sum(nuoL_final_unique$isolates_CF[which(nuoL_final_unique$Ts_Tv == "Transversion")],nuoL_final_unique$isolates_non_CF[which(nuoL_final_unique$Ts_Tv == "Transversion")]) / sum(nuoL_final_unique$isolates_CF[which(nuoL_final_unique$Ts_Tv == "Transition")],nuoL_final_unique$isolates_non_CF[which(nuoL_final_unique$Ts_Tv == "Transition")]),
+                               sum(PA14_57070_final_unique$isolates_CF[which(PA14_57070_final_unique$Ts_Tv == "Transversion")],PA14_57070_final_unique$isolates_non_CF[which(PA14_57070_final_unique$Ts_Tv == "Transversion")]) / sum(PA14_57070_final_unique$isolates_CF[which(PA14_57070_final_unique$Ts_Tv == "Transition")],PA14_57070_final_unique$isolates_non_CF[which(PA14_57070_final_unique$Ts_Tv == "Transition")]),
+                               sum(PA14_66700_final_unique$isolates_CF[which(PA14_66700_final_unique$Ts_Tv == "Transversion")],PA14_66700_final_unique$isolates_non_CF[which(PA14_66700_final_unique$Ts_Tv == "Transversion")]) / sum(PA14_66700_final_unique$isolates_CF[which(PA14_66700_final_unique$Ts_Tv == "Transition")],PA14_66700_final_unique$isolates_non_CF[which(PA14_66700_final_unique$Ts_Tv == "Transition")]),
+                               sum(pagL_final_unique$isolates_CF[which(pagL_final_unique$Ts_Tv == "Transversion")],pagL_final_unique$isolates_non_CF[which(pagL_final_unique$Ts_Tv == "Transversion")]) / sum(pagL_final_unique$isolates_CF[which(pagL_final_unique$Ts_Tv == "Transition")],pagL_final_unique$isolates_non_CF[which(pagL_final_unique$Ts_Tv == "Transition")]),
+                               sum(pelA_final_unique$isolates_CF[which(pelA_final_unique$Ts_Tv == "Transversion")],pelA_final_unique$isolates_non_CF[which(pelA_final_unique$Ts_Tv == "Transversion")]) / sum(pelA_final_unique$isolates_CF[which(pelA_final_unique$Ts_Tv == "Transition")],pelA_final_unique$isolates_non_CF[which(pelA_final_unique$Ts_Tv == "Transition")]),
+                               sum(pelF_final_unique$isolates_CF[which(pelF_final_unique$Ts_Tv == "Transversion")],pelF_final_unique$isolates_non_CF[which(pelF_final_unique$Ts_Tv == "Transversion")]) / sum(pelF_final_unique$isolates_CF[which(pelF_final_unique$Ts_Tv == "Transition")],pelF_final_unique$isolates_non_CF[which(pelF_final_unique$Ts_Tv == "Transition")]),
+                               sum(ptsP_final_unique$isolates_CF[which(ptsP_final_unique$Ts_Tv == "Transversion")],ptsP_final_unique$isolates_non_CF[which(ptsP_final_unique$Ts_Tv == "Transversion")]) / sum(ptsP_final_unique$isolates_CF[which(ptsP_final_unique$Ts_Tv == "Transition")],ptsP_final_unique$isolates_non_CF[which(ptsP_final_unique$Ts_Tv == "Transition")]),
+                               sum(relA_final_unique$isolates_CF[which(relA_final_unique$Ts_Tv == "Transversion")],relA_final_unique$isolates_non_CF[which(relA_final_unique$Ts_Tv == "Transversion")]) / sum(relA_final_unique$isolates_CF[which(relA_final_unique$Ts_Tv == "Transition")],relA_final_unique$isolates_non_CF[which(relA_final_unique$Ts_Tv == "Transition")]),
+                               sum(rhlR_final_unique$isolates_CF[which(rhlR_final_unique$Ts_Tv == "Transversion")],rhlR_final_unique$isolates_non_CF[which(rhlR_final_unique$Ts_Tv == "Transversion")]) / sum(rhlR_final_unique$isolates_CF[which(rhlR_final_unique$Ts_Tv == "Transition")],rhlR_final_unique$isolates_non_CF[which(rhlR_final_unique$Ts_Tv == "Transition")]),
+                               sum(spoT_final_unique$isolates_CF[which(spoT_final_unique$Ts_Tv == "Transversion")],spoT_final_unique$isolates_non_CF[which(spoT_final_unique$Ts_Tv == "Transversion")]) / sum(spoT_final_unique$isolates_CF[which(spoT_final_unique$Ts_Tv == "Transition")],spoT_final_unique$isolates_non_CF[which(spoT_final_unique$Ts_Tv == "Transition")]),
+                               sum(spuE_final_unique$isolates_CF[which(spuE_final_unique$Ts_Tv == "Transversion")],spuE_final_unique$isolates_non_CF[which(spuE_final_unique$Ts_Tv == "Transversion")]) / sum(spuE_final_unique$isolates_CF[which(spuE_final_unique$Ts_Tv == "Transition")],spuE_final_unique$isolates_non_CF[which(spuE_final_unique$Ts_Tv == "Transition")]),
+                               sum(spuF_final_unique$isolates_CF[which(spuF_final_unique$Ts_Tv == "Transversion")],spuF_final_unique$isolates_non_CF[which(spuF_final_unique$Ts_Tv == "Transversion")]) / sum(spuF_final_unique$isolates_CF[which(spuF_final_unique$Ts_Tv == "Transition")],spuF_final_unique$isolates_non_CF[which(spuF_final_unique$Ts_Tv == "Transition")])
+)
+
+Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF <- c(sum(algG_final_unique$isolates_CF[which(algG_final_unique$Ts_Tv == "Transversion")]) / sum(algG_final_unique$isolates_CF[which(algG_final_unique$Ts_Tv == "Transition")]),
+                                             sum(algU_final_unique$isolates_CF[which(algU_final_unique$Ts_Tv == "Transversion")]) / sum(algU_final_unique$isolates_CF[which(algU_final_unique$Ts_Tv == "Transition")]),
+                                             sum(fleR_final_unique$isolates_CF[which(fleR_final_unique$Ts_Tv == "Transversion")]) / sum(fleR_final_unique$isolates_CF[which(fleR_final_unique$Ts_Tv == "Transition")]),
+                                             sum(gacA_final_unique$isolates_CF[which(gacA_final_unique$Ts_Tv == "Transversion")]) / sum(gacA_final_unique$isolates_CF[which(gacA_final_unique$Ts_Tv == "Transition")]),
+                                             sum(gltR_final_unique$isolates_CF[which(gltR_final_unique$Ts_Tv == "Transversion")]) / sum(gltR_final_unique$isolates_CF[which(gltR_final_unique$Ts_Tv == "Transition")]),
+                                             sum(lasR_final_unique$isolates_CF[which(lasR_final_unique$Ts_Tv == "Transversion")]) / sum(lasR_final_unique$isolates_CF[which(lasR_final_unique$Ts_Tv == "Transition")]),
+                                             sum(lepA_final_unique$isolates_CF[which(lepA_final_unique$Ts_Tv == "Transversion")]) / sum(lepA_final_unique$isolates_CF[which(lepA_final_unique$Ts_Tv == "Transition")]),
+                                             sum(nuoL_final_unique$isolates_CF[which(nuoL_final_unique$Ts_Tv == "Transversion")]) / sum(nuoL_final_unique$isolates_CF[which(nuoL_final_unique$Ts_Tv == "Transition")]),
+                                             sum(PA14_57070_final_unique$isolates_CF[which(PA14_57070_final_unique$Ts_Tv == "Transversion")]) / sum(PA14_57070_final_unique$isolates_CF[which(PA14_57070_final_unique$Ts_Tv == "Transition")]),
+                                             sum(PA14_66700_final_unique$isolates_CF[which(PA14_66700_final_unique$Ts_Tv == "Transversion")]) / sum(PA14_66700_final_unique$isolates_CF[which(PA14_66700_final_unique$Ts_Tv == "Transition")]),
+                                             sum(pagL_final_unique$isolates_CF[which(pagL_final_unique$Ts_Tv == "Transversion")]) / sum(pagL_final_unique$isolates_CF[which(pagL_final_unique$Ts_Tv == "Transition")]),
+                                             sum(pelA_final_unique$isolates_CF[which(pelA_final_unique$Ts_Tv == "Transversion")]) / sum(pelA_final_unique$isolates_CF[which(pelA_final_unique$Ts_Tv == "Transition")]),
+                                             sum(pelF_final_unique$isolates_CF[which(pelF_final_unique$Ts_Tv == "Transversion")]) / sum(pelF_final_unique$isolates_CF[which(pelF_final_unique$Ts_Tv == "Transition")]),
+                                             sum(ptsP_final_unique$isolates_CF[which(ptsP_final_unique$Ts_Tv == "Transversion")]) / sum(ptsP_final_unique$isolates_CF[which(ptsP_final_unique$Ts_Tv == "Transition")]),
+                                             sum(relA_final_unique$isolates_CF[which(relA_final_unique$Ts_Tv == "Transversion")]) / sum(relA_final_unique$isolates_CF[which(relA_final_unique$Ts_Tv == "Transition")]),
+                                             sum(rhlR_final_unique$isolates_CF[which(rhlR_final_unique$Ts_Tv == "Transversion")]) / sum(rhlR_final_unique$isolates_CF[which(rhlR_final_unique$Ts_Tv == "Transition")]),
+                                             sum(spoT_final_unique$isolates_CF[which(spoT_final_unique$Ts_Tv == "Transversion")]) / sum(spoT_final_unique$isolates_CF[which(spoT_final_unique$Ts_Tv == "Transition")]),
+                                             sum(spuE_final_unique$isolates_CF[which(spuE_final_unique$Ts_Tv == "Transversion")]) / sum(spuE_final_unique$isolates_CF[which(spuE_final_unique$Ts_Tv == "Transition")]),
+                                             sum(spuF_final_unique$isolates_CF[which(spuF_final_unique$Ts_Tv == "Transversion")]) / sum(spuF_final_unique$isolates_CF[which(spuF_final_unique$Ts_Tv == "Transition")])
+                                             )
+
+Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF <- c(sum(algG_final_unique$isolates_non_CF[which(algG_final_unique$Ts_Tv == "Transversion")]) / sum(algG_final_unique$isolates_non_CF[which(algG_final_unique$Ts_Tv == "Transition")]),
+                                             sum(algU_final_unique$isolates_non_CF[which(algU_final_unique$Ts_Tv == "Transversion")]) / sum(algU_final_unique$isolates_non_CF[which(algU_final_unique$Ts_Tv == "Transition")]),
+                                             sum(fleR_final_unique$isolates_non_CF[which(fleR_final_unique$Ts_Tv == "Transversion")]) / sum(fleR_final_unique$isolates_non_CF[which(fleR_final_unique$Ts_Tv == "Transition")]),
+                                             sum(gacA_final_unique$isolates_non_CF[which(gacA_final_unique$Ts_Tv == "Transversion")]) / sum(gacA_final_unique$isolates_non_CF[which(gacA_final_unique$Ts_Tv == "Transition")]),
+                                             sum(gltR_final_unique$isolates_non_CF[which(gltR_final_unique$Ts_Tv == "Transversion")]) / sum(gltR_final_unique$isolates_non_CF[which(gltR_final_unique$Ts_Tv == "Transition")]),
+                                             sum(lasR_final_unique$isolates_non_CF[which(lasR_final_unique$Ts_Tv == "Transversion")]) / sum(lasR_final_unique$isolates_non_CF[which(lasR_final_unique$Ts_Tv == "Transition")]),
+                                             sum(lepA_final_unique$isolates_non_CF[which(lepA_final_unique$Ts_Tv == "Transversion")]) / sum(lepA_final_unique$isolates_non_CF[which(lepA_final_unique$Ts_Tv == "Transition")]),
+                                             sum(nuoL_final_unique$isolates_non_CF[which(nuoL_final_unique$Ts_Tv == "Transversion")]) / sum(nuoL_final_unique$isolates_non_CF[which(nuoL_final_unique$Ts_Tv == "Transition")]),
+                                             sum(PA14_57070_final_unique$isolates_non_CF[which(PA14_57070_final_unique$Ts_Tv == "Transversion")]) / sum(PA14_57070_final_unique$isolates_non_CF[which(PA14_57070_final_unique$Ts_Tv == "Transition")]),
+                                             sum(PA14_66700_final_unique$isolates_non_CF[which(PA14_66700_final_unique$Ts_Tv == "Transversion")]) / sum(PA14_66700_final_unique$isolates_non_CF[which(PA14_66700_final_unique$Ts_Tv == "Transition")]),
+                                             sum(pagL_final_unique$isolates_non_CF[which(pagL_final_unique$Ts_Tv == "Transversion")]) / sum(pagL_final_unique$isolates_non_CF[which(pagL_final_unique$Ts_Tv == "Transition")]),
+                                             sum(pelA_final_unique$isolates_non_CF[which(pelA_final_unique$Ts_Tv == "Transversion")]) / sum(pelA_final_unique$isolates_non_CF[which(pelA_final_unique$Ts_Tv == "Transition")]),
+                                             sum(pelF_final_unique$isolates_non_CF[which(pelF_final_unique$Ts_Tv == "Transversion")]) / sum(pelF_final_unique$isolates_non_CF[which(pelF_final_unique$Ts_Tv == "Transition")]),
+                                             sum(ptsP_final_unique$isolates_non_CF[which(ptsP_final_unique$Ts_Tv == "Transversion")]) / sum(ptsP_final_unique$isolates_non_CF[which(ptsP_final_unique$Ts_Tv == "Transition")]),
+                                             sum(relA_final_unique$isolates_non_CF[which(relA_final_unique$Ts_Tv == "Transversion")]) / sum(relA_final_unique$isolates_non_CF[which(relA_final_unique$Ts_Tv == "Transition")]),
+                                             sum(rhlR_final_unique$isolates_non_CF[which(rhlR_final_unique$Ts_Tv == "Transversion")]) / sum(rhlR_final_unique$isolates_non_CF[which(rhlR_final_unique$Ts_Tv == "Transition")]),
+                                             sum(spoT_final_unique$isolates_non_CF[which(spoT_final_unique$Ts_Tv == "Transversion")]) / sum(spoT_final_unique$isolates_non_CF[which(spoT_final_unique$Ts_Tv == "Transition")]),
+                                             sum(spuE_final_unique$isolates_non_CF[which(spuE_final_unique$Ts_Tv == "Transversion")]) / sum(spuE_final_unique$isolates_non_CF[which(spuE_final_unique$Ts_Tv == "Transition")]),
+                                             sum(spuF_final_unique$isolates_non_CF[which(spuF_final_unique$Ts_Tv == "Transversion")]) / sum(spuF_final_unique$isolates_non_CF[which(spuF_final_unique$Ts_Tv == "Transition")])
+                                             )
+
+
+Tv_Ts_vs_percentage_no_environmental$percentage_CF <-  c(nrow(algG_final_unique[which(algG_final_unique$isolates_CF != 0),])/algG_gene_length*100,
+                                              nrow(algU_final_unique[which(algU_final_unique$isolates_CF != 0),])/algU_gene_length*100,
+                                              nrow(fleR_final_unique[which(fleR_final_unique$isolates_CF != 0),])/fleR_gene_length*100,
+                                              nrow(gacA_final_unique[which(gacA_final_unique$isolates_CF != 0),])/gacA_gene_length*100,
+                                              nrow(gltR_final_unique[which(gltR_final_unique$isolates_CF != 0),])/gltR_gene_length*100,
+                                              nrow(lasR_final_unique[which(lasR_final_unique$isolates_CF != 0),])/lasR_gene_length*100,
+                                              nrow(lepA_final_unique[which(lepA_final_unique$isolates_CF != 0),])/lepA_gene_length*100,
+                                              nrow(nuoL_final_unique[which(nuoL_final_unique$isolates_CF != 0),])/nuoL_gene_length*100,
+                                              nrow(PA14_57070_final_unique[which(PA14_57070_final_unique$isolates_CF != 0),])/PA14_57070_gene_length*100,
+                                              nrow(PA14_66700_final_unique[which(PA14_66700_final_unique$isolates_CF != 0),])/PA14_66700_gene_length*100,
+                                              nrow(pagL_final_unique[which(pagL_final_unique$isolates_CF != 0),])/pagL_gene_length*100,
+                                              nrow(pelA_final_unique[which(pelA_final_unique$isolates_CF != 0),])/pelA_gene_length*100,
+                                              nrow(pelF_final_unique[which(pelF_final_unique$isolates_CF != 0),])/pelF_gene_length*100,
+                                              nrow(ptsP_final_unique[which(ptsP_final_unique$isolates_CF != 0),])/ptsP_gene_length*100,
+                                              nrow(relA_final_unique[which(relA_final_unique$isolates_CF != 0),])/relA_gene_length*100,
+                                              nrow(rhlR_final_unique[which(rhlR_final_unique$isolates_CF != 0),])/rhlR_gene_length*100,
+                                              nrow(spoT_final_unique[which(spoT_final_unique$isolates_CF != 0),])/spoT_gene_length*100,
+                                              nrow(spuE_final_unique[which(spuE_final_unique$isolates_CF != 0),])/spuE_gene_length*100,
+                                              nrow(spuF_final_unique[which(spuF_final_unique$isolates_CF != 0),])/spuF_gene_length*100
+                                              )
+
+Tv_Ts_vs_percentage_no_environmental$percentage_non_CF <-  c(nrow(algG_final_unique[which(algG_final_unique$isolates_non_CF != 0),])/algG_gene_length*100,
+                                              nrow(algU_final_unique[which(algU_final_unique$isolates_non_CF != 0),])/algU_gene_length*100,
+                                              nrow(fleR_final_unique[which(fleR_final_unique$isolates_non_CF != 0),])/fleR_gene_length*100,
+                                              nrow(gacA_final_unique[which(gacA_final_unique$isolates_non_CF != 0),])/gacA_gene_length*100,
+                                              nrow(gltR_final_unique[which(gltR_final_unique$isolates_non_CF != 0),])/gltR_gene_length*100,
+                                              nrow(lasR_final_unique[which(lasR_final_unique$isolates_non_CF != 0),])/lasR_gene_length*100,
+                                              nrow(lepA_final_unique[which(lepA_final_unique$isolates_non_CF != 0),])/lepA_gene_length*100,
+                                              nrow(nuoL_final_unique[which(nuoL_final_unique$isolates_non_CF != 0),])/nuoL_gene_length*100,
+                                              nrow(PA14_57070_final_unique[which(PA14_57070_final_unique$isolates_non_CF != 0),])/PA14_57070_gene_length*100,
+                                              nrow(PA14_66700_final_unique[which(PA14_66700_final_unique$isolates_non_CF != 0),])/PA14_66700_gene_length*100,
+                                              nrow(pagL_final_unique[which(pagL_final_unique$isolates_non_CF != 0),])/pagL_gene_length*100,
+                                              nrow(pelA_final_unique[which(pelA_final_unique$isolates_non_CF != 0),])/pelA_gene_length*100,
+                                              nrow(pelF_final_unique[which(pelF_final_unique$isolates_non_CF != 0),])/pelF_gene_length*100,
+                                              nrow(ptsP_final_unique[which(ptsP_final_unique$isolates_non_CF != 0),])/ptsP_gene_length*100,
+                                              nrow(relA_final_unique[which(relA_final_unique$isolates_non_CF != 0),])/relA_gene_length*100,
+                                              nrow(rhlR_final_unique[which(rhlR_final_unique$isolates_non_CF != 0),])/rhlR_gene_length*100,
+                                              nrow(spoT_final_unique[which(spoT_final_unique$isolates_non_CF != 0),])/spoT_gene_length*100,
+                                              nrow(spuE_final_unique[which(spuE_final_unique$isolates_non_CF != 0),])/spuE_gene_length*100,
+                                              nrow(spuF_final_unique[which(spuF_final_unique$isolates_non_CF != 0),])/spuF_gene_length*100
+                                              )
+
+
+kable(Tv_Ts_vs_percentage_no_environmental,"latex",caption = "Ratio Tv/Ts vs SNP Percentage excuding environmental",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=7)%>%
+    row_spec(0,bold = T)
+
+ggplot(data=Tv_Ts_vs_percentage_no_environmental, aes(Tv_Ts, percentage)) +
+  geom_point()
+  
+```
+
+```{r fig.cap="Ratio Tv/Ts vs % SNP per gene not found in environmental isolates",fig.height = 4, fig.width = 6}
+
+data_Tv_Ts_vs_percentage_no_environmental_algG <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[1],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[1]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[1],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[1])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_algU <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[2],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[2]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[2],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[2])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_fleR <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[3],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[3]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[3],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[3])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_gacA <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[4],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[4]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[4],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[4])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_gltR <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[5],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[5]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[5],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[5])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_lasR <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[6],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[6]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[6],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[6])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_lepA <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[7],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[7]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[7],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[7])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_nuoL <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[8],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[8]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[8],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[8])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_PA14_57070 <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[9],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[9]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[9],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[9])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_PA14_66700 <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[10],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[10]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[10],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[10])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_pagL <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[11],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[11]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[11],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[11])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_pelA <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[12],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[12]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[12],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[12])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_pelF <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[13],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[13]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[13],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[13])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_ptsP <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[14],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[14]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[14],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[14])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_relA <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[15],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[15]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[15],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[15])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_rhlR <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[16],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[16]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[16],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[16])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_spoT <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[17],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[17]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[17],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[17])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_spuE <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[18],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[18]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[18],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[18])
+                                                       )
+data_Tv_Ts_vs_percentage_no_environmental_spuF <- data.frame(x=c(Tv_Ts_vs_percentage_no_environmental$Tv_Ts_CF[19],Tv_Ts_vs_percentage_no_environmental$Tv_Ts_non_CF[19]),
+                                                       y=c(Tv_Ts_vs_percentage_no_environmental$percentage_CF[19],Tv_Ts_vs_percentage_no_environmental$percentage_non_CF[19])
+                                                       )
+
+
+ggplot() +
+  geom_point(data=Tv_Ts_vs_percentage_no_environmental, aes(Tv_Ts_CF, percentage_CF,color="CF"))+
+  geom_point(data=Tv_Ts_vs_percentage_no_environmental, aes(Tv_Ts_non_CF, percentage_non_CF,color="non_CF"))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_algG, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_algU, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_fleR, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_gacA, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_gltR, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_lasR, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_lepA, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_nuoL, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_PA14_57070, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_PA14_66700, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_pagL, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_pelA, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_pelF, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_ptsP, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_relA, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_rhlR, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_spoT, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_spuE, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_no_environmental_spuF, aes(x=x,y=y))+
+  xlab("Tv/Ts")+
+  ylab("SNP percentage")+
+  scale_color_manual(name = 'Habitat',values =c("CF"="blue","non_CF"="red"), labels = c("CF","non_CF"))
+
+
+```
+
+\newpage
+## Ratio Ts/Tv in the gene only found in 1 isolate
+
+No transversions in non-CF spuF.
+
+```{r fig.cap="Ratio Ts/Tv per gene found in only one isolate",fig.height = 3.5, fig.width = 5.5}
+Ts_Tv_one_isolate <- data.frame(gene=c("algG","algG","algU","algU","fleR","fleR","gacA","gacA","gltR","gltR","lasR","lasR",
+                                     "lepA","lepA","nuoL","nuoL","PA14_57070","PA14_57070","PA14_66700","PA14_66700",
+                                     "pagL","pagL","pelA","pelA","pelF","pelF","ptsP","ptsP","relA","relA",
+                                     "rhlR","rhlR","spoT","spoT","spuE","spuE","spuF","spuF"
+                                     ),
+                              value=c(sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Ts_Tv == "Transition")])/ sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Ts_Tv == "Transition")])/ sum(algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(algU_final_one_strain$isolates_CF[which(algU_final_one_strain$Ts_Tv == "Transition")])/ sum(algU_final_one_strain$isolates_CF[which(algU_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(algU_final_one_strain$isolates_non_CF[which(algU_final_one_strain$Ts_Tv == "Transition")])/ sum(algU_final_one_strain$isolates_non_CF[which(algU_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(fleR_final_one_strain$isolates_CF[which(fleR_final_one_strain$Ts_Tv == "Transition")])/ sum(fleR_final_one_strain$isolates_CF[which(fleR_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(fleR_final_one_strain$isolates_non_CF[which(fleR_final_one_strain$Ts_Tv == "Transition")])/ sum(fleR_final_one_strain$isolates_non_CF[which(fleR_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(gacA_final_one_strain$isolates_CF[which(gacA_final_one_strain$Ts_Tv == "Transition")])/ sum(gacA_final_one_strain$isolates_CF[which(gacA_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(gacA_final_one_strain$isolates_non_CF[which(gacA_final_one_strain$Ts_Tv == "Transition")])/ sum(gacA_final_one_strain$isolates_non_CF[which(gacA_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(gltR_final_one_strain$isolates_CF[which(gltR_final_one_strain$Ts_Tv == "Transition")])/ sum(gltR_final_one_strain$isolates_CF[which(gltR_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(gltR_final_one_strain$isolates_non_CF[which(gltR_final_one_strain$Ts_Tv == "Transition")])/ sum(gltR_final_one_strain$isolates_non_CF[which(gltR_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(lasR_final_one_strain$isolates_CF[which(lasR_final_one_strain$Ts_Tv == "Transition")])/ sum(lasR_final_one_strain$isolates_CF[which(lasR_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(lasR_final_one_strain$isolates_non_CF[which(lasR_final_one_strain$Ts_Tv == "Transition")])/ sum(lasR_final_one_strain$isolates_non_CF[which(lasR_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(lepA_final_one_strain$isolates_CF[which(lepA_final_one_strain$Ts_Tv == "Transition")])/ sum(lepA_final_one_strain$isolates_CF[which(lepA_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(lepA_final_one_strain$isolates_non_CF[which(lepA_final_one_strain$Ts_Tv == "Transition")])/ sum(lepA_final_one_strain$isolates_non_CF[which(lepA_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(nuoL_final_one_strain$isolates_CF[which(nuoL_final_one_strain$Ts_Tv == "Transition")])/ sum(nuoL_final_one_strain$isolates_CF[which(nuoL_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(nuoL_final_one_strain$isolates_non_CF[which(nuoL_final_one_strain$Ts_Tv == "Transition")])/ sum(nuoL_final_one_strain$isolates_non_CF[which(nuoL_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(PA14_57070_final_one_strain$isolates_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transition")])/ sum(PA14_57070_final_one_strain$isolates_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(PA14_57070_final_one_strain$isolates_non_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transition")])/ sum(PA14_57070_final_one_strain$isolates_non_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(PA14_66700_final_one_strain$isolates_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transition")])/ sum(PA14_66700_final_one_strain$isolates_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(PA14_66700_final_one_strain$isolates_non_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transition")])/ sum(PA14_66700_final_one_strain$isolates_non_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(pagL_final_one_strain$isolates_CF[which(pagL_final_one_strain$Ts_Tv == "Transition")])/ sum(pagL_final_one_strain$isolates_CF[which(pagL_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(pagL_final_one_strain$isolates_non_CF[which(pagL_final_one_strain$Ts_Tv == "Transition")])/ sum(pagL_final_one_strain$isolates_non_CF[which(pagL_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(pelA_final_one_strain$isolates_CF[which(pelA_final_one_strain$Ts_Tv == "Transition")])/ sum(pelA_final_one_strain$isolates_CF[which(pelA_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(pelA_final_one_strain$isolates_non_CF[which(pelA_final_one_strain$Ts_Tv == "Transition")])/ sum(pelA_final_one_strain$isolates_non_CF[which(pelA_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(pelF_final_one_strain$isolates_CF[which(pelF_final_one_strain$Ts_Tv == "Transition")])/ sum(pelF_final_one_strain$isolates_CF[which(pelF_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(pelF_final_one_strain$isolates_non_CF[which(pelF_final_one_strain$Ts_Tv == "Transition")])/ sum(pelF_final_one_strain$isolates_non_CF[which(pelF_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(ptsP_final_one_strain$isolates_CF[which(ptsP_final_one_strain$Ts_Tv == "Transition")])/ sum(ptsP_final_one_strain$isolates_CF[which(ptsP_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(ptsP_final_one_strain$isolates_non_CF[which(ptsP_final_one_strain$Ts_Tv == "Transition")])/ sum(ptsP_final_one_strain$isolates_non_CF[which(ptsP_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(relA_final_one_strain$isolates_CF[which(relA_final_one_strain$Ts_Tv == "Transition")])/ sum(relA_final_one_strain$isolates_CF[which(relA_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(relA_final_one_strain$isolates_non_CF[which(relA_final_one_strain$Ts_Tv == "Transition")])/ sum(relA_final_one_strain$isolates_non_CF[which(relA_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(rhlR_final_one_strain$isolates_CF[which(rhlR_final_one_strain$Ts_Tv == "Transition")])/ sum(rhlR_final_one_strain$isolates_CF[which(rhlR_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(rhlR_final_one_strain$isolates_non_CF[which(rhlR_final_one_strain$Ts_Tv == "Transition")])/ sum(rhlR_final_one_strain$isolates_non_CF[which(rhlR_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(spoT_final_one_strain$isolates_CF[which(spoT_final_one_strain$Ts_Tv == "Transition")])/ sum(spoT_final_one_strain$isolates_CF[which(spoT_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(spoT_final_one_strain$isolates_non_CF[which(spoT_final_one_strain$Ts_Tv == "Transition")])/ sum(spoT_final_one_strain$isolates_non_CF[which(spoT_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(spuE_final_one_strain$isolates_CF[which(spuE_final_one_strain$Ts_Tv == "Transition")])/ sum(spuE_final_one_strain$isolates_CF[which(spuE_final_one_strain$Ts_Tv == "Transversion")]),
+                                       sum(spuE_final_one_strain$isolates_non_CF[which(spuE_final_one_strain$Ts_Tv == "Transition")])/ sum(spuE_final_one_strain$isolates_non_CF[which(spuE_final_one_strain$Ts_Tv == "Transversion")]),
+                                      sum(spuF_final_one_strain$isolates_CF[which(spuF_final_one_strain$Ts_Tv == "Transition")])/ sum(spuF_final_one_strain$isolates_CF[which(spuF_final_one_strain$Ts_Tv == "Transversion")]),
+                                       NA
+                                      ),
+                              panel=c("CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF",
+                                      "CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF","CF","non-CF"
+                                      )
+                              
+                              )
+
+kable(Ts_Tv_one_isolate,"latex",caption = "Ratio Ts/Tv excluding only in one isolate",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=4)%>%
+    row_spec(0,bold = T)
+
+ggplot(data=Ts_Tv_one_isolate, aes(x=gene, y=value,fill=panel)) +
+  geom_bar(stat="identity",position=position_dodge())+
+  ylab("Ratio Ts/Tv")+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+  
+
+
+```
+
+\newpage
+## Ratio Tv/Ts vs percentage SNPs in the gene only found in 1 isolate
+
+```{r fig.cap="Ratio Tv/Ts vs % SNP per gene only found in 1 isolate genes global",fig.height = 4, fig.width = 6}
+
+Tv_Ts_vs_percentage_one_strain <- snp_percentage_singular[,1:2]
+
+Tv_Ts_vs_percentage_one_strain$Tv_Ts <- c(sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Ts_Tv == "Transversion")],algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Ts_Tv == "Transversion")]) / sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Ts_Tv == "Transition")],algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(algU_final_one_strain$isolates_CF[which(algU_final_one_strain$Ts_Tv == "Transversion")],algU_final_one_strain$isolates_non_CF[which(algU_final_one_strain$Ts_Tv == "Transversion")]) / sum(algU_final_one_strain$isolates_CF[which(algU_final_one_strain$Ts_Tv == "Transition")],algU_final_one_strain$isolates_non_CF[which(algU_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(fleR_final_one_strain$isolates_CF[which(fleR_final_one_strain$Ts_Tv == "Transversion")],fleR_final_one_strain$isolates_non_CF[which(fleR_final_one_strain$Ts_Tv == "Transversion")]) / sum(fleR_final_one_strain$isolates_CF[which(fleR_final_one_strain$Ts_Tv == "Transition")],fleR_final_one_strain$isolates_non_CF[which(fleR_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(gacA_final_one_strain$isolates_CF[which(gacA_final_one_strain$Ts_Tv == "Transversion")],gacA_final_one_strain$isolates_non_CF[which(gacA_final_one_strain$Ts_Tv == "Transversion")]) / sum(gacA_final_one_strain$isolates_CF[which(gacA_final_one_strain$Ts_Tv == "Transition")],gacA_final_one_strain$isolates_non_CF[which(gacA_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(gltR_final_one_strain$isolates_CF[which(gltR_final_one_strain$Ts_Tv == "Transversion")],gltR_final_one_strain$isolates_non_CF[which(gltR_final_one_strain$Ts_Tv == "Transversion")]) / sum(gltR_final_one_strain$isolates_CF[which(gltR_final_one_strain$Ts_Tv == "Transition")],gltR_final_one_strain$isolates_non_CF[which(gltR_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(lasR_final_one_strain$isolates_CF[which(lasR_final_one_strain$Ts_Tv == "Transversion")],lasR_final_one_strain$isolates_non_CF[which(lasR_final_one_strain$Ts_Tv == "Transversion")]) / sum(lasR_final_one_strain$isolates_CF[which(lasR_final_one_strain$Ts_Tv == "Transition")],lasR_final_one_strain$isolates_non_CF[which(lasR_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(lepA_final_one_strain$isolates_CF[which(lepA_final_one_strain$Ts_Tv == "Transversion")],lepA_final_one_strain$isolates_non_CF[which(lepA_final_one_strain$Ts_Tv == "Transversion")]) / sum(lepA_final_one_strain$isolates_CF[which(lepA_final_one_strain$Ts_Tv == "Transition")],lepA_final_one_strain$isolates_non_CF[which(lepA_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(nuoL_final_one_strain$isolates_CF[which(nuoL_final_one_strain$Ts_Tv == "Transversion")],nuoL_final_one_strain$isolates_non_CF[which(nuoL_final_one_strain$Ts_Tv == "Transversion")]) / sum(nuoL_final_one_strain$isolates_CF[which(nuoL_final_one_strain$Ts_Tv == "Transition")],nuoL_final_one_strain$isolates_non_CF[which(nuoL_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(PA14_57070_final_one_strain$isolates_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transversion")],PA14_57070_final_one_strain$isolates_non_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transversion")]) / sum(PA14_57070_final_one_strain$isolates_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transition")],PA14_57070_final_one_strain$isolates_non_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(PA14_66700_final_one_strain$isolates_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transversion")],PA14_66700_final_one_strain$isolates_non_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transversion")]) / sum(PA14_66700_final_one_strain$isolates_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transition")],PA14_66700_final_one_strain$isolates_non_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(pagL_final_one_strain$isolates_CF[which(pagL_final_one_strain$Ts_Tv == "Transversion")],pagL_final_one_strain$isolates_non_CF[which(pagL_final_one_strain$Ts_Tv == "Transversion")]) / sum(pagL_final_one_strain$isolates_CF[which(pagL_final_one_strain$Ts_Tv == "Transition")],pagL_final_one_strain$isolates_non_CF[which(pagL_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(pelA_final_one_strain$isolates_CF[which(pelA_final_one_strain$Ts_Tv == "Transversion")],pelA_final_one_strain$isolates_non_CF[which(pelA_final_one_strain$Ts_Tv == "Transversion")]) / sum(pelA_final_one_strain$isolates_CF[which(pelA_final_one_strain$Ts_Tv == "Transition")],pelA_final_one_strain$isolates_non_CF[which(pelA_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(pelF_final_one_strain$isolates_CF[which(pelF_final_one_strain$Ts_Tv == "Transversion")],pelF_final_one_strain$isolates_non_CF[which(pelF_final_one_strain$Ts_Tv == "Transversion")]) / sum(pelF_final_one_strain$isolates_CF[which(pelF_final_one_strain$Ts_Tv == "Transition")],pelF_final_one_strain$isolates_non_CF[which(pelF_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(ptsP_final_one_strain$isolates_CF[which(ptsP_final_one_strain$Ts_Tv == "Transversion")],ptsP_final_one_strain$isolates_non_CF[which(ptsP_final_one_strain$Ts_Tv == "Transversion")]) / sum(ptsP_final_one_strain$isolates_CF[which(ptsP_final_one_strain$Ts_Tv == "Transition")],ptsP_final_one_strain$isolates_non_CF[which(ptsP_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(relA_final_one_strain$isolates_CF[which(relA_final_one_strain$Ts_Tv == "Transversion")],relA_final_one_strain$isolates_non_CF[which(relA_final_one_strain$Ts_Tv == "Transversion")]) / sum(relA_final_one_strain$isolates_CF[which(relA_final_one_strain$Ts_Tv == "Transition")],relA_final_one_strain$isolates_non_CF[which(relA_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(rhlR_final_one_strain$isolates_CF[which(rhlR_final_one_strain$Ts_Tv == "Transversion")],rhlR_final_one_strain$isolates_non_CF[which(rhlR_final_one_strain$Ts_Tv == "Transversion")]) / sum(rhlR_final_one_strain$isolates_CF[which(rhlR_final_one_strain$Ts_Tv == "Transition")],rhlR_final_one_strain$isolates_non_CF[which(rhlR_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(spoT_final_one_strain$isolates_CF[which(spoT_final_one_strain$Ts_Tv == "Transversion")],spoT_final_one_strain$isolates_non_CF[which(spoT_final_one_strain$Ts_Tv == "Transversion")]) / sum(spoT_final_one_strain$isolates_CF[which(spoT_final_one_strain$Ts_Tv == "Transition")],spoT_final_one_strain$isolates_non_CF[which(spoT_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(spuE_final_one_strain$isolates_CF[which(spuE_final_one_strain$Ts_Tv == "Transversion")],spuE_final_one_strain$isolates_non_CF[which(spuE_final_one_strain$Ts_Tv == "Transversion")]) / sum(spuE_final_one_strain$isolates_CF[which(spuE_final_one_strain$Ts_Tv == "Transition")],spuE_final_one_strain$isolates_non_CF[which(spuE_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(spuF_final_one_strain$isolates_CF[which(spuF_final_one_strain$Ts_Tv == "Transversion")],spuF_final_one_strain$isolates_non_CF[which(spuF_final_one_strain$Ts_Tv == "Transversion")]) / sum(spuF_final_one_strain$isolates_CF[which(spuF_final_one_strain$Ts_Tv == "Transition")],spuF_final_one_strain$isolates_non_CF[which(spuF_final_one_strain$Ts_Tv == "Transition")])
+)
+
+Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF <- c(sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Ts_Tv == "Transversion")]) / sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(algU_final_one_strain$isolates_CF[which(algU_final_one_strain$Ts_Tv == "Transversion")]) / sum(algU_final_one_strain$isolates_CF[which(algU_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(fleR_final_one_strain$isolates_CF[which(fleR_final_one_strain$Ts_Tv == "Transversion")]) / sum(fleR_final_one_strain$isolates_CF[which(fleR_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(gacA_final_one_strain$isolates_CF[which(gacA_final_one_strain$Ts_Tv == "Transversion")]) / sum(gacA_final_one_strain$isolates_CF[which(gacA_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(gltR_final_one_strain$isolates_CF[which(gltR_final_one_strain$Ts_Tv == "Transversion")]) / sum(gltR_final_one_strain$isolates_CF[which(gltR_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(lasR_final_one_strain$isolates_CF[which(lasR_final_one_strain$Ts_Tv == "Transversion")]) / sum(lasR_final_one_strain$isolates_CF[which(lasR_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(lepA_final_one_strain$isolates_CF[which(lepA_final_one_strain$Ts_Tv == "Transversion")]) / sum(lepA_final_one_strain$isolates_CF[which(lepA_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(nuoL_final_one_strain$isolates_CF[which(nuoL_final_one_strain$Ts_Tv == "Transversion")]) / sum(nuoL_final_one_strain$isolates_CF[which(nuoL_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(PA14_57070_final_one_strain$isolates_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transversion")]) / sum(PA14_57070_final_one_strain$isolates_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(PA14_66700_final_one_strain$isolates_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transversion")]) / sum(PA14_66700_final_one_strain$isolates_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(pagL_final_one_strain$isolates_CF[which(pagL_final_one_strain$Ts_Tv == "Transversion")]) / sum(pagL_final_one_strain$isolates_CF[which(pagL_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(pelA_final_one_strain$isolates_CF[which(pelA_final_one_strain$Ts_Tv == "Transversion")]) / sum(pelA_final_one_strain$isolates_CF[which(pelA_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(pelF_final_one_strain$isolates_CF[which(pelF_final_one_strain$Ts_Tv == "Transversion")]) / sum(pelF_final_one_strain$isolates_CF[which(pelF_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(ptsP_final_one_strain$isolates_CF[which(ptsP_final_one_strain$Ts_Tv == "Transversion")]) / sum(ptsP_final_one_strain$isolates_CF[which(ptsP_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(relA_final_one_strain$isolates_CF[which(relA_final_one_strain$Ts_Tv == "Transversion")]) / sum(relA_final_one_strain$isolates_CF[which(relA_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(rhlR_final_one_strain$isolates_CF[which(rhlR_final_one_strain$Ts_Tv == "Transversion")]) / sum(rhlR_final_one_strain$isolates_CF[which(rhlR_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(spoT_final_one_strain$isolates_CF[which(spoT_final_one_strain$Ts_Tv == "Transversion")]) / sum(spoT_final_one_strain$isolates_CF[which(spoT_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(spuE_final_one_strain$isolates_CF[which(spuE_final_one_strain$Ts_Tv == "Transversion")]) / sum(spuE_final_one_strain$isolates_CF[which(spuE_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(spuF_final_one_strain$isolates_CF[which(spuF_final_one_strain$Ts_Tv == "Transversion")]) / sum(spuF_final_one_strain$isolates_CF[which(spuF_final_one_strain$Ts_Tv == "Transition")])
+                                             )
+
+Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF <- c(sum(algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Ts_Tv == "Transversion")]) / sum(algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(algU_final_one_strain$isolates_non_CF[which(algU_final_one_strain$Ts_Tv == "Transversion")]) / sum(algU_final_one_strain$isolates_non_CF[which(algU_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(fleR_final_one_strain$isolates_non_CF[which(fleR_final_one_strain$Ts_Tv == "Transversion")]) / sum(fleR_final_one_strain$isolates_non_CF[which(fleR_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(gacA_final_one_strain$isolates_non_CF[which(gacA_final_one_strain$Ts_Tv == "Transversion")]) / sum(gacA_final_one_strain$isolates_non_CF[which(gacA_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(gltR_final_one_strain$isolates_non_CF[which(gltR_final_one_strain$Ts_Tv == "Transversion")]) / sum(gltR_final_one_strain$isolates_non_CF[which(gltR_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(lasR_final_one_strain$isolates_non_CF[which(lasR_final_one_strain$Ts_Tv == "Transversion")]) / sum(lasR_final_one_strain$isolates_non_CF[which(lasR_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(lepA_final_one_strain$isolates_non_CF[which(lepA_final_one_strain$Ts_Tv == "Transversion")]) / sum(lepA_final_one_strain$isolates_non_CF[which(lepA_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(nuoL_final_one_strain$isolates_non_CF[which(nuoL_final_one_strain$Ts_Tv == "Transversion")]) / sum(nuoL_final_one_strain$isolates_non_CF[which(nuoL_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(PA14_57070_final_one_strain$isolates_non_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transversion")]) / sum(PA14_57070_final_one_strain$isolates_non_CF[which(PA14_57070_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(PA14_66700_final_one_strain$isolates_non_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transversion")]) / sum(PA14_66700_final_one_strain$isolates_non_CF[which(PA14_66700_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(pagL_final_one_strain$isolates_non_CF[which(pagL_final_one_strain$Ts_Tv == "Transversion")]) / sum(pagL_final_one_strain$isolates_non_CF[which(pagL_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(pelA_final_one_strain$isolates_non_CF[which(pelA_final_one_strain$Ts_Tv == "Transversion")]) / sum(pelA_final_one_strain$isolates_non_CF[which(pelA_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(pelF_final_one_strain$isolates_non_CF[which(pelF_final_one_strain$Ts_Tv == "Transversion")]) / sum(pelF_final_one_strain$isolates_non_CF[which(pelF_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(ptsP_final_one_strain$isolates_non_CF[which(ptsP_final_one_strain$Ts_Tv == "Transversion")]) / sum(ptsP_final_one_strain$isolates_non_CF[which(ptsP_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(relA_final_one_strain$isolates_non_CF[which(relA_final_one_strain$Ts_Tv == "Transversion")]) / sum(relA_final_one_strain$isolates_non_CF[which(relA_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(rhlR_final_one_strain$isolates_non_CF[which(rhlR_final_one_strain$Ts_Tv == "Transversion")]) / sum(rhlR_final_one_strain$isolates_non_CF[which(rhlR_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(spoT_final_one_strain$isolates_non_CF[which(spoT_final_one_strain$Ts_Tv == "Transversion")]) / sum(spoT_final_one_strain$isolates_non_CF[which(spoT_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(spuE_final_one_strain$isolates_non_CF[which(spuE_final_one_strain$Ts_Tv == "Transversion")]) / sum(spuE_final_one_strain$isolates_non_CF[which(spuE_final_one_strain$Ts_Tv == "Transition")]),
+                                             sum(spuF_final_one_strain$isolates_non_CF[which(spuF_final_one_strain$Ts_Tv == "Transversion")]) / sum(spuF_final_one_strain$isolates_non_CF[which(spuF_final_one_strain$Ts_Tv == "Transition")])
+                                             )
+
+
+Tv_Ts_vs_percentage_one_strain$percentage_CF <- c(nrow(algG_final_one_strain[which(algG_final_one_strain$isolates_CF != 0),])/algG_gene_length*100,
+                                              nrow(algU_final_one_strain[which(algU_final_one_strain$isolates_CF != 0),])/algU_gene_length*100,
+                                              nrow(fleR_final_one_strain[which(fleR_final_one_strain$isolates_CF != 0),])/fleR_gene_length*100,
+                                              nrow(gacA_final_one_strain[which(gacA_final_one_strain$isolates_CF != 0),])/gacA_gene_length*100,
+                                              nrow(gltR_final_one_strain[which(gltR_final_one_strain$isolates_CF != 0),])/gltR_gene_length*100,
+                                              nrow(lasR_final_one_strain[which(lasR_final_one_strain$isolates_CF != 0),])/lasR_gene_length*100,
+                                              nrow(lepA_final_one_strain[which(lepA_final_one_strain$isolates_CF != 0),])/lepA_gene_length*100,
+                                              nrow(nuoL_final_one_strain[which(nuoL_final_one_strain$isolates_CF != 0),])/nuoL_gene_length*100,
+                                              nrow(PA14_57070_final_one_strain[which(PA14_57070_final_one_strain$isolates_CF != 0),])/PA14_57070_gene_length*100,
+                                              nrow(PA14_66700_final_one_strain[which(PA14_66700_final_one_strain$isolates_CF != 0),])/PA14_66700_gene_length*100,
+                                              nrow(pagL_final_one_strain[which(pagL_final_one_strain$isolates_CF != 0),])/pagL_gene_length*100,
+                                              nrow(pelA_final_one_strain[which(pelA_final_one_strain$isolates_CF != 0),])/pelA_gene_length*100,
+                                              nrow(pelF_final_one_strain[which(pelF_final_one_strain$isolates_CF != 0),])/pelF_gene_length*100,
+                                              nrow(ptsP_final_one_strain[which(ptsP_final_one_strain$isolates_CF != 0),])/ptsP_gene_length*100,
+                                              nrow(relA_final_one_strain[which(relA_final_one_strain$isolates_CF != 0),])/relA_gene_length*100,
+                                              nrow(rhlR_final_one_strain[which(rhlR_final_one_strain$isolates_CF != 0),])/rhlR_gene_length*100,
+                                              nrow(spoT_final_one_strain[which(spoT_final_one_strain$isolates_CF != 0),])/spoT_gene_length*100,
+                                              nrow(spuE_final_one_strain[which(spuE_final_one_strain$isolates_CF != 0),])/spuE_gene_length*100,
+                                              nrow(spuF_final_one_strain[which(spuF_final_one_strain$isolates_CF != 0),])/spuF_gene_length*100
+                                              )
+
+Tv_Ts_vs_percentage_one_strain$percentage_non_CF <- c(nrow(algG_final_one_strain[which(algG_final_one_strain$isolates_non_CF != 0),])/algG_gene_length*100,
+                                              nrow(algU_final_one_strain[which(algU_final_one_strain$isolates_non_CF != 0),])/algU_gene_length*100,
+                                              nrow(fleR_final_one_strain[which(fleR_final_one_strain$isolates_non_CF != 0),])/fleR_gene_length*100,
+                                              nrow(gacA_final_one_strain[which(gacA_final_one_strain$isolates_non_CF != 0),])/gacA_gene_length*100,
+                                              nrow(gltR_final_one_strain[which(gltR_final_one_strain$isolates_non_CF != 0),])/gltR_gene_length*100,
+                                              nrow(lasR_final_one_strain[which(lasR_final_one_strain$isolates_non_CF != 0),])/lasR_gene_length*100,
+                                              nrow(lepA_final_one_strain[which(lepA_final_one_strain$isolates_non_CF != 0),])/lepA_gene_length*100,
+                                              nrow(nuoL_final_one_strain[which(nuoL_final_one_strain$isolates_non_CF != 0),])/nuoL_gene_length*100,
+                                              nrow(PA14_57070_final_one_strain[which(PA14_57070_final_one_strain$isolates_non_CF != 0),])/PA14_57070_gene_length*100,
+                                              nrow(PA14_66700_final_one_strain[which(PA14_66700_final_one_strain$isolates_non_CF != 0),])/PA14_66700_gene_length*100,
+                                              nrow(pagL_final_one_strain[which(pagL_final_one_strain$isolates_non_CF != 0),])/pagL_gene_length*100,
+                                              nrow(pelA_final_one_strain[which(pelA_final_one_strain$isolates_non_CF != 0),])/pelA_gene_length*100,
+                                              nrow(pelF_final_one_strain[which(pelF_final_one_strain$isolates_non_CF != 0),])/pelF_gene_length*100,
+                                              nrow(ptsP_final_one_strain[which(ptsP_final_one_strain$isolates_non_CF != 0),])/ptsP_gene_length*100,
+                                              nrow(relA_final_one_strain[which(relA_final_one_strain$isolates_non_CF != 0),])/relA_gene_length*100,
+                                              nrow(rhlR_final_one_strain[which(rhlR_final_one_strain$isolates_non_CF != 0),])/rhlR_gene_length*100,
+                                              nrow(spoT_final_one_strain[which(spoT_final_one_strain$isolates_non_CF != 0),])/spoT_gene_length*100,
+                                              nrow(spuE_final_one_strain[which(spuE_final_one_strain$isolates_non_CF != 0),])/spuE_gene_length*100,
+                                              nrow(spuF_final_one_strain[which(spuF_final_one_strain$isolates_non_CF != 0),])/spuF_gene_length*100
+                                              )
+
+
+kable(Tv_Ts_vs_percentage_one_strain,"latex",caption = "Tv/Ts vs percentage table only one isolate",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=8)%>%
+    row_spec(0,bold = T)
+
+
+
+ggplot(data=Tv_Ts_vs_percentage_one_strain, aes(Tv_Ts, percentage)) +
+  geom_point()
+  
+```
+
+```{r fig.cap="Ratio Tv/Ts vs % SNP per gene only found in 1 isolate genes per habitate",fig.height = 4, fig.width = 6}
+
+data_Tv_Ts_vs_percentage_one_strain_algG <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[1],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[1]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[1],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[1])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_algU <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[2],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[2]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[2],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[2])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_fleR <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[3],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[3]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[3],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[3])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_gacA <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[4],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[4]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[4],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[4])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_gltR <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[5],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[5]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[5],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[5])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_lasR <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[6],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[6]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[6],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[6])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_lepA <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[7],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[7]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[7],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[7])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_nuoL <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[8],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[8]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[8],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[8])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_PA14_57070 <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[9],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[9]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[9],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[9])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_PA14_66700 <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[10],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[10]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[10],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[10])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_pagL <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[11],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[11]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[11],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[11])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_pelA <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[12],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[12]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[12],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[12])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_pelF <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[13],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[13]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[13],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[13])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_ptsP <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[14],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[14]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[14],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[14])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_relA <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[15],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[15]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[15],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[15])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_rhlR <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[16],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[16]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[16],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[16])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_spoT <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[17],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[17]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[17],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[17])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_spuE <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[18],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[18]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[18],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[18])
+                                                       )
+data_Tv_Ts_vs_percentage_one_strain_spuF <- data.frame(x=c(Tv_Ts_vs_percentage_one_strain$Tv_Ts_CF[19],Tv_Ts_vs_percentage_one_strain$Tv_Ts_non_CF[19]),
+                                                       y=c(Tv_Ts_vs_percentage_one_strain$percentage_CF[19],Tv_Ts_vs_percentage_one_strain$percentage_non_CF[19])
+                                                       )
+
+
+ggplot() +
+  geom_point(data=Tv_Ts_vs_percentage_one_strain, aes(Tv_Ts_CF, percentage_CF,color="CF"))+
+  geom_point(data=Tv_Ts_vs_percentage_one_strain, aes(Tv_Ts_non_CF, percentage_non_CF,color="non_CF"))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_algG, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_algU, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_fleR, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_gacA, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_gltR, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_lasR, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_lepA, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_nuoL, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_PA14_57070, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_PA14_66700, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_pagL, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_pelA, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_pelF, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_ptsP, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_relA, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_rhlR, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_spoT, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_spuE, aes(x=x,y=y))+
+  geom_line(data = data_Tv_Ts_vs_percentage_one_strain_spuF, aes(x=x,y=y))+
+  xlab("Tv/Ts")+
+  ylab("SNP percentage")+
+  scale_color_manual(name = 'Habitat',values =c("CF"="blue","non_CF"="red"), labels = c("CF","non_CF"))
+
+
+```
+
+
+
+
+## Overview SNP distribution
+
+The table shows if the habitat has more or less SNPs than expected (to avoid equals for rounding the significance is given as help for interpretation)
+
+```{r}
+SNP_distribution <- data.frame(gene=c("algG","algU","fleR","gacA","gltR","lasR","lepA","nuoL","PA14_57070","PA14_66700","pagL",
+                                        "pelA","pelF","ptsP","relA","rhlR","spoT","spuE","spuF"),
+                               CF=c("+","+","+","-","+","+","+","-","+","+","+","+","+","+","+","+","+","+","+"),
+                               acute=c("-","-","-","-","-","-","-","+","-","-","-","-","-","-","-","-","-","-","-"),
+                               env=c("+","-","-","+","-","-","-","+","+","-","-","+","-","-","-","","-","-","-"),
+                               COPD=c("-","-","-","+","-","-","-","-","-","-","-","-","-","-","-","","-","-","-"),
+                               Significance=c("p<0.05","p<0.05","p<0.05","p<0.05","n.s.","p<0.05","p<0.05","n.s.","p<0.05","p<0.05","n.s.","p<0.05","p<0.05","p<0.05","p<0.05","p<0.05","p<0.05","p<0.05","p<0.05"),
+                               CF=c("+","+","-","+","-","-","-","-","-","-","+","-","-","-","-","-","+","-","-"),
+                               acute=c("-","-","-","-","-","+","+","-","+","-","-","+","+","+","+","+","-","-","-"),
+                               env=c("+","+","+","+","+","-","+","+","+","+","-","+","+","+","+","-","+","+","+"),
+                               COPD=c("-","-","+","-","-","-","+","-","+","-","+","-","-","-","-","-","-","-","-"),
+                               Significance=c("n.s","n.s","n.s","n.s","n.s","p<0.05","n.s","p<0.05","p<0.05","n.s","n.s","p<0.05","n.s.","n.s","n.s","p<0.05","n.s","n.s","n.s")
+
+                               )
+
+kable(SNP_distribution,"latex",caption = "Overview SNP distribution",booktabs=T)%>%
+    add_header_above(c("","No environmental"=5,"Only found in 1 isolate"=5))%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=8)%>%
+    row_spec(0,bold = T)
+```
+

@@ -1,0 +1,511 @@
+---
+title: "Summary pathoadaptive mutations *algG* coverage 200 SNP 20 envs 2021"
+author: "Dr. Sebastian Fischer"
+date: '`r format(Sys.Date(), "%B %d, %Y")`'
+output: 
+        rmarkdown::pdf_document:
+                    number_sections: true
+                    fig_caption: yes
+                    keep_tex: true
+                    includes:  
+                        in_header: /mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/helper.tex
+bibliography: /mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/bibliography.bib                        
+---
+
+```{r setup, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(error = TRUE)
+knitr::opts_chunk$set(fig.pos = 'h')
+setwd("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung")
+library(kableExtra)
+library(knitr)
+library(tidyr)
+library(ggplot2)
+library(broom)
+library(moments)
+library(dplyr)
+library(readxl)
+library(tinytex)
+```
+
+
+\setcounter{tocdepth}{4}
+\tableofcontents
+\listoffigures
+\listoftables
+\newpage
+
+
+```{r results='hide'}
+## Data input
+strand = "rev"
+load("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/algG/algG_200_20.Rdata")
+SNPeff_result <- read.table("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/algG/SNPeff_results_clean.txt",header=TRUE)
+names(algG_merged)[1] <- "PA14_Koordinate"
+names(SNPeff_result)[1] <- "PA14_Koordinate"
+names(algG_merged_switched)[1] <- "PA14_Koordinate"
+
+
+ifelse(strand == "rev",algG_final <- merge(SNPeff_result,algG_merged_switched,by=c("PA14_Koordinate","GenBase_PA14","SNP_base")),algG_final <- merge(SNPeff_result,algG_merged,by=c("PA14_Koordinate","GenBase_PA14","SNP_base")))
+
+algG_final$Isolates_acute <- algG_final$Isolates_acute_1+algG_final$Isolates_acute_2+algG_final$Isolates_acute_3
+algG_final$Isolates_env_total <- algG_final$Isolates_env_1+algG_final$Isolates_env_2+algG_final$Isolates_env_3+algG_final$Isolates_env_4+algG_final$Isolates_env_5
+
+
+gene_length <- 1632
+isolates_CF <- 345
+isolates_COPD <- 25
+isolates_acute <- 67
+isolates_env <- 97
+isolates_non_CF <- 189
+Factor_isolates <- isolates_CF/isolates_non_CF
+
+## Add Transition/Transversion
+
+algG_final$Ts_Tv <- 0
+
+function_Ts_Tv <- function(x,y){if(x == "A" & y=="G"){
+                                return("Transition")
+} else if (x == "G" & y == "A")
+  {return("Transition")}
+  else if (x == "C" & y == "T")
+  {return("Transition")}
+  else if (x == "T" & y == "C")
+  {return("Transition")}
+  else {return("Transversion")}
+  
+  }
+
+
+algG_final$Ts_Tv <- mapply(function_Ts_Tv,algG_final$GenBase_PA14,algG_final$SNP_base)
+
+## Refs Umwelt
+
+refs_environment <- read.table("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/algG/algG_env_refs.txt",header=TRUE)
+
+algG_final <- merge(refs_environment,algG_final,by="PA14_Koordinate")
+
+
+add_double_back <- subset(algG_final, PA14_Koordinate == 1586877 & SNP_base != "A")
+add_double_back <- rbind(add_double_back, subset(algG_final, PA14_Koordinate == 1587813 & SNP_base != "C"))
+add_double_back <- rbind(add_double_back, subset(algG_final, PA14_Koordinate == 1587973 & SNP_base != "C"))
+add_double_back$Environmental <- 0
+
+
+algG_final_unique <- subset(algG_final,Environmental == 0)
+algG_final_unique <- rbind(algG_final_unique, add_double_back)
+
+algG_final_one_strain <- subset(algG_final_unique, (isolates_CF == 1 & isolates_non_CF == 0) | (isolates_CF == 0 & isolates_non_CF == 1))
+
+## distribution plot all SNPs
+
+distribution <- subset(algG_final_unique, select=c("PA14_Koordinate","isolates_CF"))
+distribution$habitat <- "CF"
+names(distribution) <- c("PA14_Koordinate","Isolates","Habitat")
+
+hilfe_acute <- subset(algG_final_unique, select=c("PA14_Koordinate","Isolates_acute"))
+hilfe_acute$habitat <- "acute"
+names(hilfe_acute) <- c("PA14_Koordinate","Isolates","Habitat")
+
+hilfe_env <- subset(algG_final_unique, select=c("PA14_Koordinate","Isolates_env_total"))
+hilfe_env$habitat <- "env"
+names(hilfe_env) <- c("PA14_Koordinate","Isolates","Habitat")
+
+hilfe_COPD <- subset(algG_final_unique, select=c("PA14_Koordinate","Isolates_COPD"))
+hilfe_COPD$habitat <- "COPD"
+names(hilfe_COPD) <- c("PA14_Koordinate","Isolates","Habitat")
+
+distribution <- rbind(distribution,hilfe_acute,hilfe_env,hilfe_COPD)
+
+
+## distribution plot all nonsyn
+
+distribution_nonsyn <- subset(algG_final_unique, select=c("PA14_Koordinate","isolates_CF","Effect"), Effect != "synonymous_variant")
+distribution_nonsyn$habitat <- "CF"
+names(distribution_nonsyn) <- c("PA14_Koordinate","Isolates","Effect","Habitat")
+
+hilfe_acute <- subset(algG_final_unique, select=c("PA14_Koordinate","Isolates_acute","Effect"), Effect != "synonymous_variant")
+hilfe_acute$habitat <- "acute"
+names(hilfe_acute) <- c("PA14_Koordinate","Isolates","Effect","Habitat")
+
+hilfe_env <- subset(algG_final_unique, select=c("PA14_Koordinate","Isolates_env_total","Effect"), Effect != "synonymous_variant")
+hilfe_env$habitat <- "env"
+names(hilfe_env) <- c("PA14_Koordinate","Isolates","Effect","Habitat")
+
+hilfe_COPD <- subset(algG_final_unique, select=c("PA14_Koordinate","Isolates_COPD","Effect"), Effect != "synonymous_variant")
+hilfe_COPD$habitat <- "COPD"
+names(hilfe_COPD) <- c("PA14_Koordinate","Isolates","Effect","Habitat")
+
+distribution_nonsyn <- rbind(distribution_nonsyn,hilfe_acute,hilfe_env,hilfe_COPD)
+
+
+## Number of tests for Bonferroni Correction
+
+number_of_tests <- 6
+
+## Structure input
+
+structure_algG <- read_xls("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/structures/algG_structure.xls")
+```
+
+# Task
+
+Analyze mutations in `r isolates_CF+isolates_non_CF` isolates of *P. aeruginosa* derived from different habitats (CF,acute, COPD, environment) by amplicon sequencing of 19 loci. The initial SOLiD analysis had lacks in coverage and reanalysis of the data using Illumnina sequencing was mandatory.
+
+# Data processing
+
+Pooling and lab work was done by Jens, Paired-end sequencing was performed by the RCUG. The desired coverage was about 1,000. Quality control was performed by Colin. The quality of the data was good but there were some adaptor sequences remaining which should be cleared by read trimming. Paired-end reads merged and trimmed using trimmomatic. The alignment was performed using *bwa mem* to PA14 reference. For each position of the investigated loci covered by PCR the number of reads for each nucleotide was extracted. 
+
+# Samples
+
+
+```{r}
+table_samples <- read.csv("samples.txt",sep="\t")
+
+kable(table_samples,"latex",caption = "Overview samples",booktabs=T)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=8)%>%
+    row_spec(0,bold = T)
+
+```
+
+\newpage
+
+# Short summary
+
+
+# Problems and open questions
+
+* [SOLVED] Why not pooling and double sequence pools as with SOLiD? - Decided by Jens+Lutz. Coverage is enough and error as expected to be low
+
+
+# Results
+
+## Coverage analysis
+
+For each pool the coverage was calculated and plotted. The red horizontal line indicates the calculated coverage of 10 per isolate and the blue line indicates the planned coverage of 1,000. It can be seen that in pool CF1 one PCR product is missing and that most of the samples are above a coverage 10 per isolate. It overlap of the two PCR products is well seen in the middle of each plot.
+
+```{r fig.cap="Coverage plots for the samples"}
+include_graphics("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/algG/algG_cov.png")
+```
+
+## Basic SNP description
+
+The gene consists of `r gene_length` nucleotides. In the data set `r nrow(algG_final)` (`r length(algG_final$PA14_Koordinate)/gene_length*100`%) different SNPs are found. Since some of the SNPs affect the same position with different bases `r length(unique(algG_final$PA14_Koordinate))` (`r length(unique(algG_final$PA14_Koordinate))/gene_length*100`%) positions encode a SNP in at least one position in one of the isolates. The following table shows all the positions.
+
+
+```{r}
+
+kable(algG_final[,c(1:9,61:63)],"latex",caption = "Overview all SNPs",booktabs=T,longtable=T,col.names = c("PA14 coordinate","Env ref","Base PA14", "SNP Base","Effect","Base change","Amino Acid change", "Isolates CF", "Isolates non-CF", "Isolates Env", "Isolates acute","Isolates COPD" ))%>%
+    kable_styling(latex_options = c("striped","hold_position","repeat_header"),font_size=6)%>%
+    row_spec(0,bold = T)%>%
+    column_spec(c(1,8:12),width="1cm")%>%    
+    column_spec(c(2:4),width="0.5cm")%>%    
+    column_spec(c(6:7),width="1.5cm")
+
+  
+
+table_paper_support_SNPs_algG <- algG_final[,c(1:9,61:63)]
+names(table_paper_support_SNPs_algG) <- c("PA14 coordinate","Env ref","Base PA14","Base SNV","Effect","Base change","Amino acid change","CF strains","Non-CF strains","COPD strains","Acute infection strains","Env strains")
+save(table_paper_support_SNPs_algG,file="table_paper_support_SNPs.Rdata")
+
+
+```
+
+There are `r nrow(algG_final[which(algG_final$Effect == "synonymous_variant"),])` positions encoding synonymous mutations and `r nrow(algG_final[which(algG_final$Effect != "synonymous_variant"),])` positions encoding amino acid changes including `r nrow(algG_final[which(algG_final$Effect == "stop_gained"),])` early STOP in `r sum(algG_final$isolates_CF[which(algG_final$Effect == "stop_gained")])` CF isolates and `r sum(algG_final$isolates_non_CF[which(algG_final$Effect == "stop_gained")])` non-CF isolates.
+
+First, a general SNP investigation is performed for all isolates and shown in the following table.
+
+```{r}
+SNP_overview <- data.frame("Habitat" = c("CF - all SNPs","non-CF - all SNPs",
+                                         "CF - all syn SNPs","non-CF - all syn SNPs",
+                                         "CF - all non-syn SNPs","non-CF - all non-syn SNPs",
+                                         "Ratio syn/non-syn CF","Ratio syn/non-syn non-CF"
+                                         ),
+                           "Value" = c(sum(algG_final$isolates_CF),
+                                       sum(algG_final$isolates_non_CF),
+                                       sum(algG_final$isolates_CF[which(algG_final$Effect == "synonymous_variant")]),
+                                       sum(algG_final$isolates_non_CF[which(algG_final$Effect == "synonymous_variant")]),
+                                       sum(algG_final$isolates_CF[which(algG_final$Effect != "synonymous_variant")]),
+                                       sum(algG_final$isolates_non_CF[which(algG_final$Effect != "synonymous_variant")]),
+                                       sum(algG_final$isolates_CF[which(algG_final$Effect == "synonymous_variant")])/ sum(algG_final$isolates_CF[which(algG_final$Effect != "synonymous_variant")]),
+                                       sum(algG_final$isolates_non_CF[which(algG_final$Effect == "synonymous_variant")])/ sum(algG_final$isolates_non_CF[which(algG_final$Effect != "synonymous_variant")])
+                                      )
+                           )
+
+
+kable(SNP_overview,"latex",caption = "Basic SNP statistics",booktabs=T,longtable=T)%>%
+    kable_styling(latex_options = c("striped","hold_position","repeat_header"),font_size=7)%>%
+    row_spec(0,bold = T)
+
+```
+
+
+Of the  `r nrow(algG_final)` positions in this investigation `r nrow(algG_final_unique)` are not found in the environmental reference genomes (by 2017). In the following table is an overview for the estimation valuesexcluding these known positions.
+
+```{r}
+
+obs_CF_SNPs <- sum(algG_final_unique$isolates_CF)
+obs_acute_SNPs <- sum(algG_final_unique$Isolates_acute)
+obs_env_SNPs <- sum(algG_final_unique$Isolates_env_total)
+obs_COPD_SNPs <- sum(algG_final_unique$Isolates_COPD)
+obs_all_SNPs <-  sum(algG_final_unique$isolates_CF,algG_final_unique$Isolates_acute,algG_final_unique$Isolates_env_total,algG_final_unique$Isolates_COPD)
+
+exp_CF_SNPs <- sum(algG_final_unique$isolates_CF,algG_final_unique$Isolates_acute,
+                   algG_final_unique$Isolates_env_total,algG_final_unique$Isolates_COPD)*isolates_CF/(isolates_CF+isolates_non_CF)
+exp_acute_SNPs <- sum(algG_final_unique$isolates_CF,algG_final_unique$Isolates_acute,
+                   algG_final_unique$Isolates_env_total,algG_final_unique$Isolates_COPD)*isolates_acute/(isolates_CF+isolates_non_CF)
+exp_env_SNPs <- sum(algG_final_unique$isolates_CF,algG_final_unique$Isolates_acute,
+                   algG_final_unique$Isolates_env_total,algG_final_unique$Isolates_COPD)*isolates_env/(isolates_CF+isolates_non_CF)
+exp_COPD_SNPs <- sum(algG_final_unique$isolates_CF,algG_final_unique$Isolates_acute,
+                   algG_final_unique$Isolates_env_total,algG_final_unique$Isolates_COPD)*isolates_COPD/(isolates_CF+isolates_non_CF)
+exp_all_SNPs <-  exp_CF_SNPs+exp_acute_SNPs+exp_env_SNPs+exp_COPD_SNPs
+
+
+table_comparison_habitats_unknown <- data.frame("Parameter" = c("CF","Acute","Environmental","COPD","Total"
+                                                                ),
+                                                "Isolates" = c(isolates_CF,isolates_acute,isolates_env,isolates_COPD,isolates_CF+isolates_non_CF
+                                                               ),
+                                                "Observed_SNPs" = c(obs_CF_SNPs,obs_acute_SNPs,obs_env_SNPs,obs_COPD_SNPs,obs_all_SNPs
+                                                               ),
+                                                "Estimate_SNPs" = c(exp_CF_SNPs,exp_acute_SNPs,exp_env_SNPs,exp_COPD_SNPs,exp_all_SNPs
+                                                               )
+                                                )
+
+kable(table_comparison_habitats_unknown,"latex",caption = "Chi-squared SNPs per habitat",booktabs=T,longtable=T)%>%
+    kable_styling(latex_options = c("striped","hold_position","repeat_header"),font_size=7)%>%
+    row_spec(0,bold = T)
+```
+
+## Statistics SNP numbers all non environtal ref positions
+
+### total SNP number not in environmental ref
+
+To test for a difference in the number of mutations per habitat a chi-squared test for spin-off numbers was applied.
+
+```{r fig.cap="Statistical Test"}
+include_graphics("/mnt/sfb900nfs/groups/tuemmler/sebastian/Berichte/pathoadaptive_mutationen/zusammenfassung/chi_quadrat_spaltungsziffer.png")
+```
+
+```{r echo=TRUE}
+chi_squared_SNPs <- (obs_CF_SNPs - exp_CF_SNPs)^2/exp_CF_SNPs+(obs_acute_SNPs - exp_acute_SNPs)^2/exp_acute_SNPs+(obs_env_SNPs - exp_env_SNPs)^2/exp_env_SNPs+(obs_COPD_SNPs - exp_COPD_SNPs)^2/exp_COPD_SNPs
+
+p_value_all_SNPs <- pchisq(chi_squared_SNPs, df=3, lower.tail=FALSE)
+p_value_all_SNPs
+number_of_tests
+
+p.adjust(p_value_all_SNPs,"bonferroni",number_of_tests)
+
+```
+
+### Test synonymous vs. missense mutations
+
+Of the yet unknown positions the difference for synonymous and missense mutations was calculated
+
+```{r}
+syn_non_syn_matrix <- matrix(c(sum(algG_final_unique$isolates_CF[which(algG_final_unique$Effect == "synonymous_variant")]),
+                               sum(algG_final_unique$isolates_non_CF[which(algG_final_unique$Effect == "synonymous_variant")]),
+                               sum(algG_final_unique$isolates_CF[which(algG_final_unique$Effect != "synonymous_variant")]),
+                               sum(algG_final_unique$isolates_non_CF[which(algG_final_unique$Effect != "synonymous_variant")])),
+                             nrow=2,
+                             dimnames = list(c("CF", "non-CF"), c("synonymous", "Non synonymous"))
+                             )
+
+```
+
+```{r echo = TRUE}
+syn_non_syn_matrix
+
+p_value_fisher_syn_non_syn <- fisher.test(syn_non_syn_matrix)$p.value
+p_value_fisher_syn_non_syn
+
+p.adjust(p_value_fisher_syn_non_syn,"bonferroni",number_of_tests)
+
+```
+
+### Test Transition/Transversion
+
+Of all the positions there are `r nrow(algG_final[which(algG_final$Ts_Tv == "Transition"),])` transitions and `r nrow(algG_final[which(algG_final$Ts_Tv == "Transversion"),])`  transversions in the data set. Excluding the already non positions `r nrow(algG_final_unique[which(algG_final_unique$Ts_Tv == "Transition"),])` transitions and `r nrow(algG_final_unique[which(algG_final_unique$Ts_Tv == "Transversion"),])` transversions remain. 
+
+```{r}
+Ts_Tv_matrix <- matrix(c(sum(algG_final_unique$isolates_CF[which(algG_final_unique$Ts_Tv == "Transition")]),
+                               sum(algG_final_unique$isolates_non_CF[which(algG_final_unique$Ts_Tv == "Transition")]),
+                               sum(algG_final_unique$isolates_CF[which(algG_final_unique$Ts_Tv == "Transversion")]),
+                               sum(algG_final_unique$isolates_non_CF[which(algG_final_unique$Ts_Tv == "Transversion")])),
+                             nrow=2,
+                             dimnames = list(c("CF", "non-CF"), c("Transition", "Transversion"))
+                             )
+
+```
+
+```{r echo = TRUE}
+Ts_Tv_matrix
+
+p_value_fisher_Ts_Tv <- fisher.test(Ts_Tv_matrix)$p.value
+p_value_fisher_Ts_Tv
+
+p.adjust(p_value_fisher_Ts_Tv,"bonferroni",number_of_tests)
+
+```
+
+### SNP distribution within the gene
+
+The plot illustrates how the SNPs are located within the locus per habitat.
+
+
+```{r fig.cap="SNP distribution inside the gene"}
+ggplot(distribution, aes(x=PA14_Koordinate, y=Isolates,fill=Habitat, label = Isolates))+
+  geom_bar(stat = "identity")+
+  ggtitle("Distribution yet unknown mutations in algG")
+```
+
+```{r fig.cap="SNP distribution inside the gene missense mutations per habitat"}
+ggplot(distribution_nonsyn, aes(x=PA14_Koordinate, y=Isolates,fill=Habitat, label = Isolates))+
+  geom_bar(stat = "identity")+
+  ggtitle("Distribution yet unknown missense mutations per habitat")
+```
+
+```{r fig.cap="SNP distribution inside the gene missense mutations per effect"}
+ggplot(distribution_nonsyn, aes(x=PA14_Koordinate, y=Isolates,fill=Effect, label = Isolates))+
+  geom_bar(stat = "identity")+
+  ggtitle("Distribution yet unknown missense mutations per type")
+```
+
+## Only unique SNPs
+
+Of the environmental known cleaned list only the unique positions (found in 1 isolate) were investigated. The table shows all the `r nrow(algG_final_one_strain)` them.
+
+```{r}
+kable(algG_final_one_strain[,c(1,3:9,61:63)],"latex",caption = "Overview all SNPs only in 1 isolate",booktabs=T,longtable=T,row.names=FALSE,col.names = c("PA14 coordinate","Base PA14", "SNP Base","Effect","Base change","Amino Acid change", "Isolates CF", "Isolates non-CF", "Isolates Env", "Isolates acute","Isolates COPD" ))%>%
+    kable_styling(latex_options = c("striped","hold_position","repeat_header"),font_size=6)%>%
+    row_spec(0,bold = T)%>%
+    column_spec(c(1:3,6:12),width="1cm")
+```
+
+There are `r sum(algG_final_one_strain$isolates_CF)` positions in CF isolates and `r sum(algG_final_one_strain$isolates_non_CF)` in non-CF isolates.
+
+```{r}
+
+obs_CF_SNPS_one_strain <- sum(algG_final_one_strain$isolates_CF)
+obs_acute_SNPS_one_strain <- sum(algG_final_one_strain$Isolates_acute)
+obs_env_SNPS_one_strain <- sum(algG_final_one_strain$Isolates_env_total)
+obs_COPD_SNPS_one_strain <- sum(algG_final_one_strain$Isolates_COPD)
+obs_all_SNPS_one_strain <-  sum(algG_final_one_strain$isolates_CF,algG_final_one_strain$Isolates_acute,algG_final_one_strain$Isolates_env_total,algG_final_one_strain$Isolates_COPD)
+
+exp_CF_SNPS_one_strain <- sum(algG_final_one_strain$isolates_CF,algG_final_one_strain$Isolates_acute,
+                   algG_final_one_strain$Isolates_env_total,algG_final_one_strain$Isolates_COPD)*isolates_CF/(isolates_CF+isolates_non_CF)
+exp_acute_SNPS_one_strain <- sum(algG_final_one_strain$isolates_CF,algG_final_one_strain$Isolates_acute,
+                   algG_final_one_strain$Isolates_env_total,algG_final_one_strain$Isolates_COPD)*isolates_acute/(isolates_CF+isolates_non_CF)
+exp_env_SNPS_one_strain <- sum(algG_final_one_strain$isolates_CF,algG_final_one_strain$Isolates_acute,
+                   algG_final_one_strain$Isolates_env_total,algG_final_one_strain$Isolates_COPD)*isolates_env/(isolates_CF+isolates_non_CF)
+exp_COPD_SNPS_one_strain <- sum(algG_final_one_strain$isolates_CF,algG_final_one_strain$Isolates_acute,
+                   algG_final_one_strain$Isolates_env_total,algG_final_one_strain$Isolates_COPD)*isolates_COPD/(isolates_CF+isolates_non_CF)
+exp_all_SNPS_one_strain <-  exp_CF_SNPS_one_strain+exp_acute_SNPS_one_strain+exp_env_SNPS_one_strain+exp_COPD_SNPS_one_strain
+
+
+table_comparison_habitats_one_strain <- data.frame("Parameter" = c("CF","Acute","Environmental","COPD","Total"
+                                                                ),
+                                                "Isolates" = c(isolates_CF,isolates_acute,isolates_env,isolates_COPD,isolates_CF+isolates_non_CF
+                                                               ),
+                                                "Observed_SNPS_one_strain" = c(obs_CF_SNPS_one_strain,obs_acute_SNPS_one_strain,obs_env_SNPS_one_strain,obs_COPD_SNPS_one_strain,obs_all_SNPS_one_strain
+                                                               ),
+                                                "Estimate_SNPS_one_strain" = c(exp_CF_SNPS_one_strain,exp_acute_SNPS_one_strain,exp_env_SNPS_one_strain,exp_COPD_SNPS_one_strain,exp_all_SNPS_one_strain
+                                                               )
+                                                )
+
+kable(table_comparison_habitats_one_strain,"latex",caption = "Chi-squared SNPs per habitat unique positions",booktabs=T,longtable=T)%>%
+    kable_styling(latex_options = c("striped","hold_position","repeat_header"),font_size=7)%>%
+    row_spec(0,bold = T)
+```
+
+
+```{r echo=TRUE}
+chi_squared_SNPS_one_strain <- (obs_CF_SNPS_one_strain - exp_CF_SNPS_one_strain)^2/exp_CF_SNPS_one_strain+(obs_acute_SNPS_one_strain - exp_acute_SNPS_one_strain)^2/exp_acute_SNPS_one_strain+(obs_env_SNPS_one_strain - exp_env_SNPS_one_strain)^2/exp_env_SNPS_one_strain+(obs_COPD_SNPS_one_strain - exp_COPD_SNPS_one_strain)^2/exp_COPD_SNPS_one_strain
+
+p_value_all_SNPS_one_strain <- pchisq(chi_squared_SNPS_one_strain, df=3, lower.tail=FALSE)
+p_value_all_SNPS_one_strain
+number_of_tests
+
+p.adjust(p_value_all_SNPS_one_strain,"bonferroni",number_of_tests)
+
+```
+
+### Test synonymous vs. missense mutations
+
+Of positions present only in one strain the difference for synonymous and missense mutations was calculated.
+
+
+```{r}
+syn_non_syn_matrix_one_strain <- matrix(c(sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Effect == "synonymous_variant")]),
+                               sum(algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Effect == "synonymous_variant")]),
+                               sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Effect != "synonymous_variant")]),
+                               sum(algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Effect != "synonymous_variant")])),
+                             nrow=2,
+                             dimnames = list(c("CF", "non-CF"), c("synonymous", "Non synonymous"))
+                             )
+
+```
+
+```{r echo = TRUE}
+syn_non_syn_matrix_one_strain
+
+p_value_fisher_syn_non_syn_one_strain <- fisher.test(syn_non_syn_matrix_one_strain)$p.value
+p_value_fisher_syn_non_syn_one_strain
+
+p.adjust(p_value_fisher_syn_non_syn_one_strain,"bonferroni",number_of_tests)
+
+```
+
+
+### Test Transition/Transversion
+
+
+```{r}
+Ts_Tv_matrix_one_strain <- matrix(c(sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Ts_Tv == "Transition")]),
+                               sum(algG_final_one_strain$isolates_CF[which(algG_final_one_strain$Ts_Tv == "Transversion")]),
+                               sum(algG_final_one_strain$isolates_non_CF[which(algG_final_one_strain$Ts_Tv == "Transversion")])),
+                             nrow=2,
+                             dimnames = list(c("CF", "non-CF"), c("Transition", "Transversion"))
+                             )
+
+```
+
+```{r echo = TRUE}
+Ts_Tv_matrix_one_strain
+
+p_value_fisher_Ts_Tv_one_strain <- fisher.test(Ts_Tv_matrix_one_strain)$p.value
+p_value_fisher_Ts_Tv_one_strain
+
+p.adjust(p_value_fisher_Ts_Tv_one_strain,"bonferroni",number_of_tests)
+
+```
+
+
+```{r}
+save(algG_final,algG_final_unique,algG_final_one_strain,file="algG_pathoadaptive_200_20.Rdata")
+```
+
+## Correlation to structure
+
+The structure and important amino acids are described in the papers @Douhit2005 and @Wolfram2014. The table shwows important amino acids and genome coordinates.
+
+```{r}
+kable(structure_algG,"latex",caption = "Important structure elements",booktabs=T,longtable=TRUE)%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=8)%>%
+    row_spec(0,bold = T)
+```
+
+Of the important positions the following mutations were found and not known in environmental isolates so far. Possible candidates are highlighted in yellow. The criteria for this are a missens mutation in at least 2 isolates in CF habitats and only rare occurance in non-CF isolates.
+
+```{r}
+summary_table_structure_mutations <- merge(structure_algG,algG_final_unique,by="PA14_Koordinate")
+
+kable(summary_table_structure_mutations[,c(1:2,8:11,64:66)],"latex",caption = "Important structure elements",booktabs=T,longtable=TRUE,col.names = c("PA14 coordinate","Comment","Effect","Base change","Amino acid change", "Isolates CF","Isolates Env", "Isolates acute","Isolates COPD" ))%>%
+    kable_styling(latex_options = c("striped","hold_position"),font_size=8)%>%
+    row_spec(0,bold = T)%>%
+    column_spec(c(1:2,4:9),width="1.5cm")
+```
+
+
+
+# References
